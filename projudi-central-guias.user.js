@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      1.2
+// @version      1.3
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -182,10 +182,45 @@
     };
   }
 
+  function mergeGuideLists(...lists) {
+    const merged = new Map();
+    lists.reduce((acc, list) => acc.concat(Array.isArray(list) ? list : []), []).filter(Boolean).forEach(guide => {
+      const key = guide.guideId || guide.number || `${guide.rowNumber || ''}:${guide.type || ''}:${guide.dueDate || ''}`;
+      const existing = merged.get(key);
+      merged.set(key, {
+        ...existing,
+        ...guide,
+        manual: normalizeManual({
+          ...(existing && existing.manual),
+          ...(guide && guide.manual)
+        })
+      });
+    });
+    return Array.from(merged.values());
+  }
+
   function ensureProcessRecord(db, identity) {
-    const key = identity.processId || identity.cnj || identity.shortNumber;
+    const candidates = [identity.processId, identity.cnj, identity.shortNumber].filter(Boolean);
+    const matchedEntries = Object.entries(db.processes || {}).filter(([, proc]) => (
+      candidates.some(candidate => (
+        candidate &&
+        (proc.processId === candidate || proc.cnj === candidate || proc.shortNumber === candidate || proc.key === candidate)
+      ))
+    ));
+    const key = identity.processId
+      || (matchedEntries.find(([, proc]) => proc.processId)?.[0])
+      || identity.cnj
+      || (matchedEntries.find(([, proc]) => proc.cnj)?.[0])
+      || identity.shortNumber
+      || (matchedEntries[0] && matchedEntries[0][0])
+      || '';
     if (!key) return null;
-    const existing = db.processes[key] || {};
+    const existing = matchedEntries.reduce((acc, [, proc]) => ({
+      ...acc,
+      ...proc,
+      manual: undefined,
+      guides: mergeGuideLists(acc.guides || [], proc.guides || [])
+    }), db.processes[key] || {});
     const normalized = {
       key,
       processId: identity.processId || existing.processId || '',
@@ -204,6 +239,9 @@
         manual: normalizeManual(g.manual)
       })) : []
     };
+    matchedEntries.forEach(([matchedKey]) => {
+      if (matchedKey !== key) delete db.processes[matchedKey];
+    });
     db.processes[key] = normalized;
     return normalized;
   }
