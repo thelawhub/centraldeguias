@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      1.0
+// @version      1.1
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -332,6 +332,7 @@
     if (manual.paid) return 'paid_manual';
     if (hasReceived) return 'paid';
     if (hasCanceled) return 'canceled';
+    if (situation.includes('PARCELAMENTO PAGO')) return 'paid';
     if (situation.includes('PARCELAMENTO REALIZADO')) return 'parcelamento_realizado';
     if (!due) return 'open';
 
