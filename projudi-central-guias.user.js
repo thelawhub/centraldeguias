@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      1.3
+// @version      1.4
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -1308,11 +1308,16 @@
       });
     });
     rows.sort((a, b) => {
-      const diff = statusPriority(a.status) - statusPriority(b.status);
-      if (diff !== 0) return diff;
-      const da = a.guide.dueDate ? new Date(a.guide.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
-      const dbb = b.guide.dueDate ? new Date(b.guide.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
-      return da - dbb;
+      if (a.processRecord.key !== b.processRecord.key) {
+        const ta = new Date(a.processRecord.lastGuidesSyncAt || a.processRecord.lastProcessSeenAt || 0).getTime();
+        const tb = new Date(b.processRecord.lastGuidesSyncAt || b.processRecord.lastProcessSeenAt || 0).getTime();
+        if (tb !== ta) return tb - ta;
+        return String(a.processRecord.shortNumber || a.processRecord.cnj || a.processRecord.processId || '')
+          .localeCompare(String(b.processRecord.shortNumber || b.processRecord.cnj || b.processRecord.processId || ''), 'pt-BR');
+      }
+      const rowDiff = (Number(a.guide.rowNumber) || Number.MAX_SAFE_INTEGER) - (Number(b.guide.rowNumber) || Number.MAX_SAFE_INTEGER);
+      if (rowDiff !== 0) return rowDiff;
+      return String(a.guide.number || '').localeCompare(String(b.guide.number || ''), 'pt-BR');
     });
     return rows;
   }
