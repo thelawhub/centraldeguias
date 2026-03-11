@@ -44,7 +44,9 @@
     guidesMounted: false,
     guideSyncSignature: null,
     cleanupFns: [],
-    alertsShown: new Set()
+    alertsShown: new Set(),
+    wasHomePage: false,
+    homeAlertShown: false
   };
 
   const storage = {
@@ -575,6 +577,9 @@
         gap: 8px;
         margin-top: 8px;
       }
+      .pj-guides-inline__actions {
+        justify-content: center;
+      }
       .pj-guides-btn {
         border: 1px solid #b8cbe0;
         border-radius: 999px;
@@ -591,6 +596,11 @@
       .pj-guides-btn--primary {
         background: #1f5d97;
         border-color: #1f5d97;
+        color: #fff;
+      }
+      .pj-guides-btn--primary:hover {
+        background: #184b79;
+        border-color: #184b79;
         color: #fff;
       }
       .pj-guides-btn--danger {
@@ -1000,9 +1010,8 @@
 
   function maybeAlertForHome(signature, message, tone) {
     if (!message) return;
-    const key = `home:${signature}`;
-    if (state.alertsShown.has(key)) return;
-    state.alertsShown.add(key);
+    if (state.homeAlertShown) return;
+    state.homeAlertShown = true;
     showToast(message, tone, { persistent: true });
   }
 
@@ -1498,6 +1507,9 @@
     state.homeMounted = false;
     state.processMounted = false;
     state.guidesMounted = false;
+    const homePage = isHomePage(document);
+    if (homePage && !state.wasHomePage) state.homeAlertShown = false;
+    state.wasHomePage = homePage;
 
     if (isGuidesPage(document)) {
       mountGuidesCard();
@@ -1507,7 +1519,7 @@
       mountProcessCard();
       return;
     }
-    if (isHomePage(document)) {
+    if (homePage) {
       mountHomePanel();
     }
   }
