@@ -6,8 +6,8 @@
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
 // @license      CC BY-NC 4.0
-// @updateURL    https://gist.githubusercontent.com/lourencosv//raw/projudi-central-guias.user.js
-// @downloadURL  https://gist.githubusercontent.com/lourencosv//raw/projudi-central-guias.user.js
+// @updateURL    https://gist.githubusercontent.com/lourencosv/b62f6a7595e1c6a4f6ce0441bbdc3a46/raw/projudi-central-guias.user.js
+// @downloadURL  https://gist.githubusercontent.com/lourencosv/b62f6a7595e1c6a4f6ce0441bbdc3a46/raw/projudi-central-guias.user.js
 // @match        *://projudi.tjgo.jus.br/*
 // @run-at       document-end
 // @grant        GM_getValue
