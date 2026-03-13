@@ -125,6 +125,15 @@
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
+  function extractCurrencyText(value) {
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!text) return '';
+    const match = text.match(/(?:R\$\s*)?\d{1,3}(?:\.\d{3})*,\d{2}/);
+    if (!match) return '';
+    const amount = match[0].replace(/\s+/g, ' ').trim();
+    return amount.startsWith('R$') ? amount : `R$ ${amount}`;
+  }
+
   function formatDate(dateLike) {
     if (!dateLike) return '--';
     const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
@@ -152,6 +161,15 @@
 
   function textOf(node) {
     return String(node && node.textContent ? node.textContent : '').replace(/\s+/g, ' ').trim();
+  }
+
+  function absoluteUrl(url) {
+    if (!url) return '';
+    try {
+      return new URL(url, window.location.href).toString();
+    } catch (_) {
+      return String(url || '');
+    }
   }
 
   function htmlEscape(value) {
@@ -370,11 +388,79 @@
         installmentText: installment.text,
         installmentNumber: installment.number,
         installmentTotal: installment.total,
+        amountText: String(previous && previous.amountText || '').trim(),
         detailUrl: href,
         manual: normalizeManual(previous && previous.manual),
         lastSeenAt: nowIso()
       };
     }).filter(Boolean);
+  }
+
+  function extractGuideAmountFromDoc(doc) {
+    if (!doc) return '';
+    const fieldSelectors = [
+      'input[id*="Valor"]',
+      'input[name*="Valor"]',
+      'input[id*="valor"]',
+      'input[name*="valor"]',
+      'span[id*="Valor"]',
+      'span[name*="Valor"]',
+      'div[id*="Valor"]',
+      'div[name*="Valor"]'
+    ];
+    for (const selector of fieldSelectors) {
+      const elements = Array.from(doc.querySelectorAll(selector));
+      for (const element of elements) {
+        const amount = extractCurrencyText(element.value || element.getAttribute('value') || textOf(element));
+        if (!amount) continue;
+        const context = [
+          element.id,
+          element.name,
+          textOf(element.closest('fieldset')),
+          textOf(element.previousElementSibling),
+          textOf(element.parentElement)
+        ].join(' ');
+        if (/(valor|guia|recolh|custa|total)/i.test(context)) return amount;
+      }
+    }
+
+    const labeledElements = Array.from(doc.querySelectorAll('div, span, label, td, strong, p'));
+    for (const element of labeledElements) {
+      const text = textOf(element);
+      if (!/valor/i.test(text)) continue;
+      const amount = extractCurrencyText(text);
+      if (amount) return amount;
+    }
+
+    return '';
+  }
+
+  async function fetchGuideAmountText(guide) {
+    if (!guide || !guide.detailUrl) return '';
+    try {
+      const response = await fetch(absoluteUrl(guide.detailUrl), { credentials: 'same-origin' });
+      if (!response.ok) return '';
+      const html = await response.text();
+      if (!html) return '';
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      return extractGuideAmountFromDoc(doc);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  async function enrichGuidesWithAmounts(guides) {
+    const pending = (Array.isArray(guides) ? guides : []).filter(guide => guide && !guide.amountText && guide.detailUrl);
+    if (!pending.length) return guides;
+    const concurrency = 4;
+    for (let index = 0; index < pending.length; index += concurrency) {
+      const chunk = pending.slice(index, index + concurrency);
+      const amounts = await Promise.all(chunk.map(fetchGuideAmountText));
+      chunk.forEach((guide, offset) => {
+        if (amounts[offset]) guide.amountText = amounts[offset];
+      });
+    }
+    return guides;
   }
 
   function computeGuideStatus(guide, baseDate = startOfToday()) {
@@ -1134,13 +1220,14 @@
     maybeAlertForProcess(processRecord, summary);
   }
 
-  function syncGuidesFromPage(options = {}) {
+  async function syncGuidesFromPage(options = {}) {
     const db = loadDb();
     const ctx = extractGuidesPageContext(document, db);
     if (!ctx) return null;
     const processRecord = ensureProcessRecord(db, ctx);
     if (!processRecord) return null;
     const guides = parseGuideRows(document, processRecord);
+    await enrichGuidesWithAmounts(guides);
     processRecord.guides = guides;
     processRecord.lastGuidesSyncAt = nowIso();
     processRecord.lastGuidesSyncSource = 'GuiaEmissao?PaginaAtual=6';
@@ -1154,9 +1241,9 @@
     return { processRecord, summary };
   }
 
-  function mountGuidesCard() {
+  async function mountGuidesCard() {
     if (document.getElementById('pj-guides-guide-card')) return;
-    const sync = syncGuidesFromPage({ silent: true });
+    const sync = await syncGuidesFromPage({ silent: true });
     if (!sync) return;
     const { processRecord, summary } = sync;
     const target = document.querySelector('#divEditar .formEdicao') || document.querySelector('#divEditar');
@@ -1179,8 +1266,8 @@
 
     const actions = document.createElement('div');
     actions.className = 'pj-guides-inline__actions';
-    actions.appendChild(createIconButton('fa-solid fa-rotate-right', 'Sincronizar agora', 'pj-guides-btn pj-guides-btn--tool', () => {
-      const result = syncGuidesFromPage();
+    actions.appendChild(createIconButton('fa-solid fa-rotate-right', 'Sincronizar agora', 'pj-guides-btn pj-guides-btn--tool', async () => {
+      const result = await syncGuidesFromPage();
       if (!result) return;
       card.remove();
       state.guidesMounted = false;
@@ -1482,7 +1569,10 @@
                     <span class="pj-guides-guide-main">${htmlEscape(guide.number)}</span>
                     ${getCompactInstallmentText(guide) ? `<span class="pj-guides-guide-sub">${htmlEscape(getCompactInstallmentText(guide))}</span>` : ''}
                   </td>
-                  <td><span class="pj-guides-guide-type">${htmlEscape(guide.type)}</span></td>
+                  <td>
+                    <span class="pj-guides-guide-type">${htmlEscape(guide.type)}</span>
+                    ${guide.amountText ? `<span class="pj-guides-guide-sub">${htmlEscape(guide.amountText)}</span>` : ''}
+                  </td>
                   <td>${formatDate(guide.dueDate)}</td>
                   <td>
                     <div class="pj-guides-status-cell">
