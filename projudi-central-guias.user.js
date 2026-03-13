@@ -125,15 +125,6 @@
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
-  function extractCurrencyText(value) {
-    const text = String(value || '').replace(/\s+/g, ' ').trim();
-    if (!text) return '';
-    const match = text.match(/(?:R\$\s*)?\d{1,3}(?:\.\d{3})*,\d{2}/);
-    if (!match) return '';
-    const amount = match[0].replace(/\s+/g, ' ').trim();
-    return amount.startsWith('R$') ? amount : `R$ ${amount}`;
-  }
-
   function formatDate(dateLike) {
     if (!dateLike) return '--';
     const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
@@ -161,15 +152,6 @@
 
   function textOf(node) {
     return String(node && node.textContent ? node.textContent : '').replace(/\s+/g, ' ').trim();
-  }
-
-  function absoluteUrl(url) {
-    if (!url) return '';
-    try {
-      return new URL(url, window.location.href).toString();
-    } catch (_) {
-      return String(url || '');
-    }
   }
 
   function htmlEscape(value) {
@@ -388,79 +370,11 @@
         installmentText: installment.text,
         installmentNumber: installment.number,
         installmentTotal: installment.total,
-        amountText: String(previous && previous.amountText || '').trim(),
         detailUrl: href,
         manual: normalizeManual(previous && previous.manual),
         lastSeenAt: nowIso()
       };
     }).filter(Boolean);
-  }
-
-  function extractGuideAmountFromDoc(doc) {
-    if (!doc) return '';
-    const fieldSelectors = [
-      'input[id*="Valor"]',
-      'input[name*="Valor"]',
-      'input[id*="valor"]',
-      'input[name*="valor"]',
-      'span[id*="Valor"]',
-      'span[name*="Valor"]',
-      'div[id*="Valor"]',
-      'div[name*="Valor"]'
-    ];
-    for (const selector of fieldSelectors) {
-      const elements = Array.from(doc.querySelectorAll(selector));
-      for (const element of elements) {
-        const amount = extractCurrencyText(element.value || element.getAttribute('value') || textOf(element));
-        if (!amount) continue;
-        const context = [
-          element.id,
-          element.name,
-          textOf(element.closest('fieldset')),
-          textOf(element.previousElementSibling),
-          textOf(element.parentElement)
-        ].join(' ');
-        if (/(valor|guia|recolh|custa|total)/i.test(context)) return amount;
-      }
-    }
-
-    const labeledElements = Array.from(doc.querySelectorAll('div, span, label, td, strong, p'));
-    for (const element of labeledElements) {
-      const text = textOf(element);
-      if (!/valor/i.test(text)) continue;
-      const amount = extractCurrencyText(text);
-      if (amount) return amount;
-    }
-
-    return '';
-  }
-
-  async function fetchGuideAmountText(guide) {
-    if (!guide || !guide.detailUrl) return '';
-    try {
-      const response = await fetch(absoluteUrl(guide.detailUrl), { credentials: 'same-origin' });
-      if (!response.ok) return '';
-      const html = await response.text();
-      if (!html) return '';
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      return extractGuideAmountFromDoc(doc);
-    } catch (_) {
-      return '';
-    }
-  }
-
-  async function enrichGuidesWithAmounts(guides) {
-    const pending = (Array.isArray(guides) ? guides : []).filter(guide => guide && !guide.amountText && guide.detailUrl);
-    if (!pending.length) return guides;
-    const concurrency = 4;
-    for (let index = 0; index < pending.length; index += concurrency) {
-      const chunk = pending.slice(index, index + concurrency);
-      const amounts = await Promise.all(chunk.map(fetchGuideAmountText));
-      chunk.forEach((guide, offset) => {
-        if (amounts[offset]) guide.amountText = amounts[offset];
-      });
-    }
-    return guides;
   }
 
   function computeGuideStatus(guide, baseDate = startOfToday()) {
@@ -475,7 +389,7 @@
     if (hasReceived) return 'paid';
     if (hasCanceled) return 'canceled';
     if (situation.includes('BAIXADA COM GRATUIDADE')) return 'gratuidade';
-    if (situation.includes('PARCELAMENTO PAGO')) return 'paid';
+    if (situation.includes('PARCELAMENTO PAGO')) return 'parcelamento_pago';
     if (situation.includes('PARCELAMENTO REALIZADO')) return 'parcelamento_realizado';
     if (!due) return 'open';
 
@@ -515,7 +429,7 @@
       else if (status === 'due_today') summary.dueToday += 1;
       else if (status === 'due_soon') summary.dueSoon += 1;
       else if (status === 'due_week') summary.dueWeek += 1;
-      else if (status === 'paid' || status === 'gratuidade' || status === 'paid_manual' || status === 'parcelamento_realizado') summary.paid += 1;
+      else if (status === 'paid' || status === 'gratuidade' || status === 'paid_manual' || status === 'parcelamento_pago' || status === 'parcelamento_realizado') summary.paid += 1;
       else if (status === 'canceled') summary.canceled += 1;
       else if (status === 'ignored') summary.ignored += 1;
       else summary.open += 1;
@@ -869,6 +783,7 @@
       .pj-guides-badge--paid,
       .pj-guides-badge--gratuidade,
       .pj-guides-badge--paid_manual,
+      .pj-guides-badge--parcelamento_pago,
       .pj-guides-badge--parcelamento_realizado { background: #e4f4e4; color: #1e6a33; }
       .pj-guides-badge--canceled,
       .pj-guides-badge--ignored { background: #ebedf0; color: #5a6472; }
@@ -1115,6 +1030,7 @@
       paid: 'Paga',
       gratuidade: 'Baixada com gratuidade',
       paid_manual: 'Marcada como paga',
+      parcelamento_pago: 'Parcelamento pago',
       canceled: 'Cancelada',
       ignored: 'Ignorada',
       parcelamento_realizado: 'Parcelamento realizado',
@@ -1220,14 +1136,13 @@
     maybeAlertForProcess(processRecord, summary);
   }
 
-  async function syncGuidesFromPage(options = {}) {
+  function syncGuidesFromPage(options = {}) {
     const db = loadDb();
     const ctx = extractGuidesPageContext(document, db);
     if (!ctx) return null;
     const processRecord = ensureProcessRecord(db, ctx);
     if (!processRecord) return null;
     const guides = parseGuideRows(document, processRecord);
-    await enrichGuidesWithAmounts(guides);
     processRecord.guides = guides;
     processRecord.lastGuidesSyncAt = nowIso();
     processRecord.lastGuidesSyncSource = 'GuiaEmissao?PaginaAtual=6';
@@ -1241,9 +1156,9 @@
     return { processRecord, summary };
   }
 
-  async function mountGuidesCard() {
+  function mountGuidesCard() {
     if (document.getElementById('pj-guides-guide-card')) return;
-    const sync = await syncGuidesFromPage({ silent: true });
+    const sync = syncGuidesFromPage({ silent: true });
     if (!sync) return;
     const { processRecord, summary } = sync;
     const target = document.querySelector('#divEditar .formEdicao') || document.querySelector('#divEditar');
@@ -1266,8 +1181,8 @@
 
     const actions = document.createElement('div');
     actions.className = 'pj-guides-inline__actions';
-    actions.appendChild(createIconButton('fa-solid fa-rotate-right', 'Sincronizar agora', 'pj-guides-btn pj-guides-btn--tool', async () => {
-      const result = await syncGuidesFromPage();
+    actions.appendChild(createIconButton('fa-solid fa-rotate-right', 'Sincronizar agora', 'pj-guides-btn pj-guides-btn--tool', () => {
+      const result = syncGuidesFromPage();
       if (!result) return;
       card.remove();
       state.guidesMounted = false;
@@ -1420,8 +1335,9 @@
       paid_manual: 7,
       gratuidade: 8,
       paid: 9,
-      parcelamento_realizado: 10,
-      canceled: 11
+      parcelamento_pago: 10,
+      parcelamento_realizado: 11,
+      canceled: 12
     }[status] || 50;
   }
 
@@ -1533,7 +1449,7 @@
         if (filter === 'due_week') return row.status === 'due_week';
         if (filter === 'open') return ['open', 'due_week', 'due_soon', 'due_today', 'overdue'].includes(row.status);
         if (filter === 'ignored') return row.status === 'ignored';
-        if (filter === 'paid') return ['paid', 'gratuidade', 'paid_manual', 'parcelamento_realizado'].includes(row.status);
+        if (filter === 'paid') return ['paid', 'gratuidade', 'paid_manual', 'parcelamento_pago', 'parcelamento_realizado'].includes(row.status);
         return true;
       });
 
@@ -1569,10 +1485,7 @@
                     <span class="pj-guides-guide-main">${htmlEscape(guide.number)}</span>
                     ${getCompactInstallmentText(guide) ? `<span class="pj-guides-guide-sub">${htmlEscape(getCompactInstallmentText(guide))}</span>` : ''}
                   </td>
-                  <td>
-                    <span class="pj-guides-guide-type">${htmlEscape(guide.type)}</span>
-                    ${guide.amountText ? `<span class="pj-guides-guide-sub">${htmlEscape(guide.amountText)}</span>` : ''}
-                  </td>
+                  <td><span class="pj-guides-guide-type">${htmlEscape(guide.type)}</span></td>
                   <td>${formatDate(guide.dueDate)}</td>
                   <td>
                     <div class="pj-guides-status-cell">
