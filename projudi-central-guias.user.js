@@ -263,6 +263,22 @@
     }
   }
 
+  function buildProcessLookupUrl(identity) {
+    if (!identity) return '';
+    const processNumber = identity.shortNumber || identity.cnj || '';
+    if (processNumber) {
+      return `BuscaProcesso?PaginaAtual=2&TipoConsultaProcesso=24&ProcessoNumero=${encodeURIComponent(processNumber)}`;
+    }
+    if (identity.processId) {
+      return `BuscaProcesso?Id_Processo=${encodeURIComponent(identity.processId)}`;
+    }
+    return identity.processUrl || '';
+  }
+
+  function getProcessOpenUrl(processRecord) {
+    return buildProcessLookupUrl(processRecord);
+  }
+
   function extractProcessPageContext(doc = document) {
     const cnjEl = doc.querySelector('#span_proc_numero');
     const table = doc.querySelector('#TabelaArquivos');
@@ -615,11 +631,13 @@
         flex-wrap: wrap;
         gap: 8px;
         margin-top: 8px;
-      }
-      .pj-guides-inline__actions {
-        justify-content: center;
+        justify-content: flex-end;
       }
       .pj-guides-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
         border: 1px solid #b8cbe0;
         border-radius: 999px;
         padding: 8px 12px;
@@ -651,6 +669,49 @@
         background: #fff8ea;
         color: #996817;
         border-color: #f1d7a0;
+      }
+      .pj-guides-btn--icon {
+        width: 38px;
+        min-width: 38px;
+        height: 38px;
+        padding: 0;
+        font-size: 15px;
+      }
+      .pj-guides-btn--icon.pj-guides-btn--primary,
+      .pj-guides-btn--icon.pj-guides-btn--warn,
+      .pj-guides-btn--icon.pj-guides-btn--danger {
+        padding: 0;
+      }
+      .pj-guides-btn--tool {
+        width: auto;
+        min-width: 0;
+        height: auto;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: #4d6d94;
+        font-size: 28px;
+        line-height: 1;
+      }
+      .pj-guides-btn--tool:hover {
+        background: transparent;
+        color: #1f5d97;
+      }
+      .pj-guides-home__actions .pj-guides-btn--tool,
+      .pj-guides-inline__actions .pj-guides-btn--tool {
+        font-size: 26px;
+      }
+      .pj-guides-sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
       .pj-guides-banner {
         display: flex;
@@ -743,7 +804,7 @@
         border: 1px solid #d6e1eb;
       }
       .pj-guides-manager__header {
-        padding: 14px 18px;
+        padding: 12px 16px;
         margin-bottom: 0;
         border-bottom: 1px solid #e2eaf1;
         background: linear-gradient(180deg, #1f5d97 0%, #1c527f 100%);
@@ -777,7 +838,7 @@
       .pj-guides-col-due { width: 9%; }
       .pj-guides-col-status { width: 16%; }
       .pj-guides-col-sync { width: 12%; }
-      .pj-guides-col-actions { width: 13%; }
+      .pj-guides-col-actions { width: 16%; }
       .pj-guides-process-main {
         display: block;
         font-weight: 700;
@@ -830,26 +891,25 @@
         background: #f7fbff;
       }
       .pj-guides-close-btn {
-        width: 28px;
-        height: 28px;
-        min-width: 28px;
+        width: 30px;
+        height: 30px;
+        min-width: 30px;
         padding: 0;
         border: 0;
         border-radius: 999px;
         background: rgba(255,255,255,.2);
         color: #fff;
-        font-size: 14px;
-        font-weight: 500;
-        line-height: 1.2;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1;
       }
       .pj-guides-close-btn:hover {
         background: rgba(255,255,255,.28);
       }
       .pj-guides-row-actions {
-        position: relative;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         justify-content: flex-end;
       }
       .pj-guides-manager .pj-guides-btn {
@@ -857,45 +917,12 @@
         font-size: 11px;
         text-align: center;
       }
-      .pj-guides-row-actions > .pj-guides-btn,
-      .pj-guides-action-menu > summary.pj-guides-btn {
-        box-sizing: border-box;
-        width: 76px;
-        min-width: 76px;
-      }
-      .pj-guides-action-menu {
-        position: relative;
-        flex: 0 0 auto;
-      }
-      .pj-guides-action-menu > summary {
-        list-style: none;
-      }
-      .pj-guides-action-menu > summary::-webkit-details-marker {
-        display: none;
-      }
-      .pj-guides-action-menu[open] > summary {
-        background: #edf4fb;
-      }
-      .pj-guides-action-sheet {
-        position: absolute;
-        top: calc(100% + 6px);
-        right: 0;
-        z-index: 5;
-        min-width: 148px;
-        padding: 8px;
-        border: 1px solid #d8e3ef;
-        border-radius: 12px;
-        background: #fff;
-        box-shadow: 0 12px 30px rgba(31, 52, 74, .16);
-      }
-      .pj-guides-action-list {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      .pj-guides-action-list .pj-guides-btn {
-        width: 100%;
-        border-radius: 10px;
+      .pj-guides-manager .pj-guides-btn--icon {
+        padding: 0;
+        width: 32px;
+        min-width: 32px;
+        height: 32px;
+        font-size: 13px;
       }
       .pj-guides-header-menu a {
         color: #484848;
@@ -1013,11 +1040,13 @@
     `;
   }
 
-  function createButton(label, className, onClick) {
+  function createIconButton(iconClass, label, className, onClick) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = className;
-    btn.textContent = label;
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.innerHTML = `<i class="${iconClass}" aria-hidden="true"></i><span class="pj-guides-sr-only">${htmlEscape(label)}</span>`;
     btn.addEventListener('click', onClick);
     return btn;
   }
@@ -1089,8 +1118,8 @@
 
     const actions = document.createElement('div');
     actions.className = 'pj-guides-inline__actions';
-    actions.appendChild(createButton('Abrir Consultar Guias', 'pj-guides-btn pj-guides-btn--primary', () => navigateToUrl('GuiaEmissao?PaginaAtual=6')));
-    actions.appendChild(createButton('Abrir Painel', 'pj-guides-btn', () => openManager(processRecord.key)));
+    actions.appendChild(createIconButton('fa-solid fa-folder-open', 'Abrir Consultar Guias', 'pj-guides-btn pj-guides-btn--tool', () => navigateToUrl('GuiaEmissao?PaginaAtual=6')));
+    actions.appendChild(createIconButton('fa-solid fa-table-columns', 'Abrir Painel', 'pj-guides-btn pj-guides-btn--tool', () => openManager(processRecord.key)));
     card.appendChild(actions);
 
     anchor.insertAdjacentElement('afterend', card);
@@ -1143,14 +1172,14 @@
 
     const actions = document.createElement('div');
     actions.className = 'pj-guides-inline__actions';
-    actions.appendChild(createButton('Sincronizar agora', 'pj-guides-btn pj-guides-btn--primary', () => {
+    actions.appendChild(createIconButton('fa-solid fa-rotate-right', 'Sincronizar agora', 'pj-guides-btn pj-guides-btn--tool', () => {
       const result = syncGuidesFromPage();
       if (!result) return;
       card.remove();
       state.guidesMounted = false;
       mountGuidesCard();
     }));
-    actions.appendChild(createButton('Abrir painel', 'pj-guides-btn', () => openManager(processRecord.key)));
+    actions.appendChild(createIconButton('fa-solid fa-table-columns', 'Abrir painel', 'pj-guides-btn pj-guides-btn--tool', () => openManager(processRecord.key)));
     card.appendChild(actions);
 
     target.insertAdjacentElement('afterbegin', card);
@@ -1202,7 +1231,7 @@
 
     const actions = document.createElement('div');
     actions.className = 'pj-guides-home__actions';
-    actions.appendChild(createButton('Abrir painel completo', 'pj-guides-btn pj-guides-btn--primary', () => openManager()));
+    actions.appendChild(createIconButton('fa-solid fa-table-columns', 'Abrir painel completo', 'pj-guides-btn pj-guides-btn--tool', () => openManager()));
     panel.appendChild(actions);
 
     if (critical.length) {
@@ -1225,14 +1254,18 @@
                 <td><span class="pj-guides-guide-main">${htmlEscape(row.guide.number)}</span>${getCompactInstallmentText(row.guide) ? `<span class="pj-guides-guide-sub">${htmlEscape(getCompactInstallmentText(row.guide))}</span>` : ''}</td>
                 <td>${formatDate(row.guide.dueDate)}</td>
                 <td><span class="pj-guides-badge pj-guides-badge--${row.status}">${htmlEscape(getStatusLabel(row.status))}</span></td>
-                <td><button type="button" class="pj-guides-btn" data-open-process="${htmlEscape(row.processRecord.processUrl)}">Abrir processo</button></td>
+                <td><button type="button" class="pj-guides-btn pj-guides-btn--icon" data-open-process-key="${htmlEscape(row.processRecord.key)}" title="Abrir processo" aria-label="Abrir processo"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="pj-guides-sr-only">Abrir processo</span></button></td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       `;
-      tableWrap.querySelectorAll('[data-open-process]').forEach(btn => {
-        btn.addEventListener('click', () => navigateToUrl(btn.getAttribute('data-open-process')));
+      tableWrap.querySelectorAll('[data-open-process-key]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const dbForClick = loadDb();
+          const processRecord = dbForClick.processes[btn.getAttribute('data-open-process-key')];
+          navigateToUrl(getProcessOpenUrl(processRecord));
+        });
       });
       panel.appendChild(tableWrap);
     } else {
@@ -1362,7 +1395,7 @@
           <select id="pj-guides-filter" class="pj-guides-select">
             <option value="all">Todas</option>
             <option value="overdue">Vencidas</option>
-            <option value="due_soon">Hoje / 7 dias úteis</option>
+            <option value="due_soon">Próximos</option>
             <option value="due_week">Semana</option>
             <option value="open">Em aberto</option>
             <option value="ignored">Ignoradas</option>
@@ -1452,17 +1485,10 @@
                   <td><span class="pj-guides-sync">${formatDateTimeSingleLine(proc.lastGuidesSyncAt)}</span></td>
                   <td>
                     <div class="pj-guides-row-actions">
-                      <button type="button" class="pj-guides-btn" data-action="open" data-process="${htmlEscape(proc.processUrl)}">Abrir</button>
-                      <details class="pj-guides-action-menu">
-                        <summary class="pj-guides-btn">Mais</summary>
-                        <div class="pj-guides-action-sheet">
-                          <div class="pj-guides-action-list">
-                            <button type="button" class="pj-guides-btn" data-action="paid" data-process-key="${htmlEscape(proc.key)}" data-guide-key="${htmlEscape(identifier)}">${guide.manual && guide.manual.paid ? 'Desfazer pago' : 'Marcar pago'}</button>
-                            <button type="button" class="pj-guides-btn" data-action="notify" data-process-key="${htmlEscape(proc.key)}" data-guide-key="${htmlEscape(identifier)}">${guide.manual && guide.manual.notified ? 'Desfazer aviso' : 'Marcar aviso'}</button>
-                            <button type="button" class="pj-guides-btn pj-guides-btn--warn" data-action="ignore" data-process-key="${htmlEscape(proc.key)}" data-guide-key="${htmlEscape(identifier)}">${guide.manual && guide.manual.ignored ? 'Reativar' : 'Ignorar'}</button>
-                          </div>
-                        </div>
-                      </details>
+                      <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="paid" data-process-key="${htmlEscape(proc.key)}" data-guide-key="${htmlEscape(identifier)}" title="${htmlEscape(guide.manual && guide.manual.paid ? 'Desfazer pago' : 'Marcar pago')}" aria-label="${htmlEscape(guide.manual && guide.manual.paid ? 'Desfazer pago' : 'Marcar pago')}"><i class="fa-solid ${guide.manual && guide.manual.paid ? 'fa-arrow-rotate-left' : 'fa-circle-check'}" aria-hidden="true"></i><span class="pj-guides-sr-only">${htmlEscape(guide.manual && guide.manual.paid ? 'Desfazer pago' : 'Marcar pago')}</span></button>
+                      <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="notify" data-process-key="${htmlEscape(proc.key)}" data-guide-key="${htmlEscape(identifier)}" title="${htmlEscape(guide.manual && guide.manual.notified ? 'Desfazer aviso' : 'Marcar aviso')}" aria-label="${htmlEscape(guide.manual && guide.manual.notified ? 'Desfazer aviso' : 'Marcar aviso')}"><i class="fa-solid ${guide.manual && guide.manual.notified ? 'fa-bell-slash' : 'fa-bell'}" aria-hidden="true"></i><span class="pj-guides-sr-only">${htmlEscape(guide.manual && guide.manual.notified ? 'Desfazer aviso' : 'Marcar aviso')}</span></button>
+                      <button type="button" class="pj-guides-btn pj-guides-btn--warn pj-guides-btn--icon" data-action="ignore" data-process-key="${htmlEscape(proc.key)}" data-guide-key="${htmlEscape(identifier)}" title="${htmlEscape(guide.manual && guide.manual.ignored ? 'Reativar' : 'Ignorar')}" aria-label="${htmlEscape(guide.manual && guide.manual.ignored ? 'Reativar' : 'Ignorar')}"><i class="fa-solid ${guide.manual && guide.manual.ignored ? 'fa-eye' : 'fa-ban'}" aria-hidden="true"></i><span class="pj-guides-sr-only">${htmlEscape(guide.manual && guide.manual.ignored ? 'Reativar' : 'Ignorar')}</span></button>
+                      <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="open" data-process-key="${htmlEscape(proc.key)}" title="Abrir processo" aria-label="Abrir processo"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="pj-guides-sr-only">Abrir processo</span></button>
                     </div>
                   </td>
                 </tr>
@@ -1473,14 +1499,10 @@
       `;
 
       content.querySelectorAll('[data-action="open"]').forEach(btn => {
-        btn.addEventListener('click', () => navigateToUrl(btn.getAttribute('data-process')));
-      });
-      content.querySelectorAll('.pj-guides-action-menu').forEach(menu => {
-        menu.addEventListener('toggle', () => {
-          if (!menu.open) return;
-          content.querySelectorAll('.pj-guides-action-menu').forEach(other => {
-            if (other !== menu) other.open = false;
-          });
+        btn.addEventListener('click', () => {
+          const dbForClick = loadDb();
+          const processRecord = dbForClick.processes[btn.getAttribute('data-process-key')];
+          navigateToUrl(getProcessOpenUrl(processRecord));
         });
       });
       content.querySelectorAll('[data-action="paid"]').forEach(btn => {
