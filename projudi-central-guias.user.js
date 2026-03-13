@@ -694,6 +694,11 @@
         font-size: 34px;
         line-height: 1;
       }
+      .pj-guides-btn--tool > i {
+        display: block;
+        font-size: 2em;
+        line-height: 1;
+      }
       .pj-guides-btn--tool:hover {
         background: transparent;
         color: #1f5d97;
