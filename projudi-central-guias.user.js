@@ -388,7 +388,7 @@
     if (manual.paid) return 'paid_manual';
     if (hasReceived) return 'paid';
     if (hasCanceled) return 'canceled';
-    if (situation.includes('BAIXADA COM GRATUIDADE')) return 'paid';
+    if (situation.includes('BAIXADA COM GRATUIDADE')) return 'gratuidade';
     if (situation.includes('PARCELAMENTO PAGO')) return 'paid';
     if (situation.includes('PARCELAMENTO REALIZADO')) return 'parcelamento_realizado';
     if (!due) return 'open';
@@ -429,7 +429,7 @@
       else if (status === 'due_today') summary.dueToday += 1;
       else if (status === 'due_soon') summary.dueSoon += 1;
       else if (status === 'due_week') summary.dueWeek += 1;
-      else if (status === 'paid' || status === 'paid_manual' || status === 'parcelamento_realizado') summary.paid += 1;
+      else if (status === 'paid' || status === 'gratuidade' || status === 'paid_manual' || status === 'parcelamento_realizado') summary.paid += 1;
       else if (status === 'canceled') summary.canceled += 1;
       else if (status === 'ignored') summary.ignored += 1;
       else summary.open += 1;
@@ -691,7 +691,7 @@
         border-radius: 0;
         background: transparent;
         color: #4d6d94;
-        font-size: 28px;
+        font-size: 34px;
         line-height: 1;
       }
       .pj-guides-btn--tool:hover {
@@ -700,7 +700,7 @@
       }
       .pj-guides-home__actions .pj-guides-btn--tool,
       .pj-guides-inline__actions .pj-guides-btn--tool {
-        font-size: 26px;
+        font-size: 34px;
       }
       .pj-guides-sr-only {
         position: absolute;
@@ -776,6 +776,7 @@
       .pj-guides-badge--due_soon,
       .pj-guides-badge--due_week { background: #fff1d9; color: #8d5b0a; }
       .pj-guides-badge--paid,
+      .pj-guides-badge--gratuidade,
       .pj-guides-badge--paid_manual,
       .pj-guides-badge--parcelamento_realizado { background: #e4f4e4; color: #1e6a33; }
       .pj-guides-badge--canceled,
@@ -1021,6 +1022,7 @@
       due_soon: 'Vence em breve',
       due_week: 'Vence na semana',
       paid: 'Paga',
+      gratuidade: 'Baixada com gratuidade',
       paid_manual: 'Marcada como paga',
       canceled: 'Cancelada',
       ignored: 'Ignorada',
@@ -1324,9 +1326,10 @@
       open: 5,
       ignored: 6,
       paid_manual: 7,
-      paid: 8,
-      parcelamento_realizado: 9,
-      canceled: 10
+      gratuidade: 8,
+      paid: 9,
+      parcelamento_realizado: 10,
+      canceled: 11
     }[status] || 50;
   }
 
@@ -1438,7 +1441,7 @@
         if (filter === 'due_week') return row.status === 'due_week';
         if (filter === 'open') return ['open', 'due_week', 'due_soon', 'due_today', 'overdue'].includes(row.status);
         if (filter === 'ignored') return row.status === 'ignored';
-        if (filter === 'paid') return ['paid', 'paid_manual', 'parcelamento_realizado'].includes(row.status);
+        if (filter === 'paid') return ['paid', 'gratuidade', 'paid_manual', 'parcelamento_realizado'].includes(row.status);
         return true;
       });
 
