@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      1.6
+// @version      1.7
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -14,6 +14,8 @@
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
+// @grant        GM_xmlhttpRequest
+// @connect      api.github.com
 // ==/UserScript==
 
 (function () {
@@ -25,7 +27,37 @@
   }
 
   const STORAGE_KEY = 'projudi_guides_central::db';
+  const SCRIPT_META = (() => {
+    const fallbackName = 'Central de Guias';
+    const fallbackId = 'projudi-central-guias';
+    try {
+      const script = GM_info && GM_info.script ? GM_info.script : {};
+      const name = String(script.name || fallbackName).trim() || fallbackName;
+      const namespace = String(script.namespace || '').trim();
+      const version = String(script.version || 'unknown').trim() || 'unknown';
+      const base = (namespace || name || fallbackId)
+        .replace(/\.user\.js$/i, '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .toLowerCase();
+      const id = base || fallbackId;
+      return { name, version, id, fileName: `${id}.json` };
+    } catch (_) {
+      return { name: fallbackName, version: 'unknown', id: fallbackId, fileName: `${fallbackId}.json` };
+    }
+  })();
+  const BACKUP_KEY = 'projudi_guides_central::backup';
   const MENU_LABEL = 'Gerenciar Central de Guias';
+  const BACKUP_SCHEMA = 'projudi-central-guias-backup-v1';
+  const DEFAULT_BACKUP_SETTINGS = {
+    enabled: false,
+    gistId: '',
+    token: '',
+    fileName: SCRIPT_META.fileName,
+    autoBackupOnSave: false
+  };
   const UI_Z = 2147483200;
   const ALERT_BUSINESS_DAYS = 7;
   const STALE_SYNC_DAYS = 10;
@@ -46,7 +78,8 @@
     cleanupFns: [],
     alertsShown: new Set(),
     wasHomePage: false,
-    homeAlertShown: false
+    homeAlertShown: false,
+    backupTimer: null
   };
 
   const storage = {
@@ -69,6 +102,103 @@
       localStorage.setItem(key, JSON.stringify(value));
     }
   };
+
+  function normalizeBackupSettings(value) {
+    const next = { ...DEFAULT_BACKUP_SETTINGS, ...(value || {}) };
+    next.enabled = !!next.enabled;
+    next.gistId = String(next.gistId || '').trim();
+    next.token = String(next.token || '').trim();
+    next.fileName = String(next.fileName || SCRIPT_META.fileName).trim() || SCRIPT_META.fileName;
+    next.autoBackupOnSave = !!next.autoBackupOnSave;
+    return next;
+  }
+
+  function loadBackupSettings() {
+    return normalizeBackupSettings(storage.get(BACKUP_KEY, DEFAULT_BACKUP_SETTINGS));
+  }
+
+  function saveBackupSettings(next) {
+    const normalized = normalizeBackupSettings(next);
+    storage.set(BACKUP_KEY, normalized);
+    return normalized;
+  }
+
+  function buildBackupPayload() {
+    return {
+      schema: BACKUP_SCHEMA,
+      scriptId: SCRIPT_META.id,
+      scriptName: SCRIPT_META.name,
+      version: SCRIPT_META.version,
+      exportedAt: nowIso(),
+      host: location.host,
+      db: loadDb()
+    };
+  }
+
+  function applyBackupPayload(payload) {
+    const db = payload && typeof payload === 'object' && payload.db && typeof payload.db === 'object' ? payload.db : payload;
+    saveDb(normalizeDb(db));
+  }
+
+  function githubRequest(options) {
+    return new Promise((resolve, reject) => {
+      if (typeof GM_xmlhttpRequest !== 'function') {
+        reject(new Error('GM_xmlhttpRequest indisponível.'));
+        return;
+      }
+      GM_xmlhttpRequest({
+        method: options.method || 'GET',
+        url: options.url,
+        headers: options.headers || {},
+        data: options.data,
+        onload: resolve,
+        onerror: () => reject(new Error('Falha de rede ao acessar o GitHub.')),
+        ontimeout: () => reject(new Error('Tempo esgotado ao acessar o GitHub.'))
+      });
+    });
+  }
+
+  function parseGithubError(response) {
+    try {
+      const parsed = JSON.parse(response.responseText || '{}');
+      if (parsed && parsed.message) return parsed.message;
+    } catch (_) {}
+    return `GitHub respondeu com status ${response.status}.`;
+  }
+
+  async function pushBackupToGist(backupSettings, payload) {
+    if (!backupSettings.gistId) throw new Error('Informe o Gist ID.');
+    if (!backupSettings.token) throw new Error('Informe o token do GitHub.');
+    const response = await githubRequest({
+      method: 'PATCH',
+      url: `https://api.github.com/gists/${encodeURIComponent(backupSettings.gistId)}`,
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${backupSettings.token}`,
+        'Content-Type': 'application/json'
+      },
+      data: JSON.stringify({ files: { [backupSettings.fileName]: { content: JSON.stringify(payload, null, 2) } } })
+    });
+    if (response.status < 200 || response.status >= 300) throw new Error(parseGithubError(response));
+  }
+
+  async function readBackupFromGist(backupSettings) {
+    if (!backupSettings.gistId) throw new Error('Informe o Gist ID.');
+    if (!backupSettings.token) throw new Error('Informe o token do GitHub.');
+    const response = await githubRequest({
+      method: 'GET',
+      url: `https://api.github.com/gists/${encodeURIComponent(backupSettings.gistId)}`,
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${backupSettings.token}`
+      }
+    });
+    if (response.status < 200 || response.status >= 300) throw new Error(parseGithubError(response));
+    const gist = JSON.parse(response.responseText || '{}');
+    const file = gist && gist.files ? gist.files[backupSettings.fileName] : null;
+    if (!file || !file.content) throw new Error('Arquivo de backup não encontrado no Gist.');
+    return JSON.parse(file.content);
+  }
 
   function nowIso() {
     return new Date().toISOString();
@@ -172,6 +302,20 @@
 
   function saveDb(db) {
     storage.set(STORAGE_KEY, db);
+    scheduleAutoBackup();
+  }
+
+  function scheduleAutoBackup() {
+    clearTimeout(state.backupTimer);
+    state.backupTimer = null;
+    const backupSettings = loadBackupSettings();
+    if (!backupSettings.enabled || !backupSettings.autoBackupOnSave) return;
+    state.backupTimer = setTimeout(async () => {
+      state.backupTimer = null;
+      try {
+        await pushBackupToGist(backupSettings, buildBackupPayload());
+      } catch (_) {}
+    }, 800);
   }
 
   function normalizeManual(manual) {
@@ -828,6 +972,72 @@
         gap: 10px;
         margin-bottom: 12px;
       }
+      .pj-guides-manager__backup {
+        margin-bottom: 14px;
+        padding: 12px;
+        border: 1px solid #d7e3ef;
+        border-radius: 12px;
+        background: #f8fbff;
+      }
+      .pj-guides-manager__backup-title {
+        margin: 0 0 4px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #17365d;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+      }
+      .pj-guides-manager__backup-desc {
+        margin: 0 0 10px;
+        font-size: 12px;
+        color: #5d6f86;
+      }
+      .pj-guides-manager__backup-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .pj-guides-manager__backup-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .pj-guides-manager__backup-field label,
+      .pj-guides-manager__backup-toggle label {
+        font-size: 12px;
+        color: #2d4668;
+        font-weight: 600;
+      }
+      .pj-guides-manager__backup-field input {
+        width: 100%;
+      }
+      .pj-guides-manager__backup-field--full {
+        grid-column: 1 / -1;
+      }
+      .pj-guides-manager__backup-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .pj-guides-manager__backup-toggle {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .pj-guides-manager__backup-toggle label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 500;
+      }
+      .pj-guides-manager__backup-status {
+        margin-left: auto;
+        font-size: 12px;
+        color: #47627f;
+      }
       .pj-guides-input,
       .pj-guides-select {
         border: 1px solid #c6d6e6;
@@ -1413,6 +1623,33 @@
             <option value="paid">Pagas</option>
           </select>
         </div>
+        <div class="pj-guides-manager__backup">
+          <div class="pj-guides-manager__backup-title">Backup remoto</div>
+          <div class="pj-guides-manager__backup-desc">Use um unico Gist privado e um arquivo separado para este script.</div>
+          <div class="pj-guides-manager__backup-grid">
+            <div class="pj-guides-manager__backup-field">
+              <label for="pj-guides-backup-gist">Gist ID</label>
+              <input id="pj-guides-backup-gist" class="pj-guides-input" type="text" placeholder="Cole o Gist ID">
+            </div>
+            <div class="pj-guides-manager__backup-field">
+              <label for="pj-guides-backup-file">Arquivo</label>
+              <input id="pj-guides-backup-file" class="pj-guides-input" type="text" placeholder="projudi-central-guias.json">
+            </div>
+            <div class="pj-guides-manager__backup-field pj-guides-manager__backup-field--full">
+              <label for="pj-guides-backup-token">Token do GitHub</label>
+              <input id="pj-guides-backup-token" class="pj-guides-input" type="password" placeholder="ghp_...">
+            </div>
+          </div>
+          <div class="pj-guides-manager__backup-row">
+            <div class="pj-guides-manager__backup-toggle">
+              <label><input id="pj-guides-backup-enabled" type="checkbox"> Ativar backup</label>
+              <label><input id="pj-guides-backup-auto" type="checkbox"> Backup automatico</label>
+            </div>
+            <button type="button" id="pj-guides-backup-send" class="pj-guides-btn">Enviar backup</button>
+            <button type="button" id="pj-guides-backup-restore" class="pj-guides-btn">Restaurar</button>
+            <span id="pj-guides-backup-status" class="pj-guides-manager__backup-status"></span>
+          </div>
+        </div>
         <div id="pj-guides-manager-content"></div>
       </div>
     `;
@@ -1426,6 +1663,71 @@
     const searchInput = panel.querySelector('#pj-guides-search');
     const filterSelect = panel.querySelector('#pj-guides-filter');
     const content = panel.querySelector('#pj-guides-manager-content');
+    const backupEnabled = panel.querySelector('#pj-guides-backup-enabled');
+    const backupAuto = panel.querySelector('#pj-guides-backup-auto');
+    const backupGist = panel.querySelector('#pj-guides-backup-gist');
+    const backupToken = panel.querySelector('#pj-guides-backup-token');
+    const backupFile = panel.querySelector('#pj-guides-backup-file');
+    const backupSend = panel.querySelector('#pj-guides-backup-send');
+    const backupRestore = panel.querySelector('#pj-guides-backup-restore');
+    const backupStatus = panel.querySelector('#pj-guides-backup-status');
+    const backupSettings = loadBackupSettings();
+
+    backupEnabled.checked = backupSettings.enabled;
+    backupAuto.checked = backupSettings.autoBackupOnSave;
+    backupGist.value = backupSettings.gistId;
+    backupToken.value = backupSettings.token;
+    backupFile.value = backupSettings.fileName;
+
+    function setBackupStatus(message, isError) {
+      backupStatus.textContent = message || '';
+      backupStatus.style.color = isError ? '#b42318' : '#47627f';
+    }
+
+    function readBackupSettingsFromPanel() {
+      return saveBackupSettings({
+        enabled: backupEnabled.checked,
+        autoBackupOnSave: backupAuto.checked,
+        gistId: backupGist.value,
+        token: backupToken.value,
+        fileName: backupFile.value
+      });
+    }
+
+    async function runBackupNow() {
+      const nextSettings = readBackupSettingsFromPanel();
+      setBackupStatus('Enviando backup...');
+      await pushBackupToGist(nextSettings, buildBackupPayload());
+      setBackupStatus(`Backup enviado em ${formatDateTimeSingleLine(new Date())}.`);
+    }
+
+    backupSend.addEventListener('click', async () => {
+      try {
+        await runBackupNow();
+      } catch (error) {
+        setBackupStatus(error && error.message ? error.message : 'Falha ao enviar backup.', true);
+      }
+    });
+
+    backupRestore.addEventListener('click', async () => {
+      try {
+        const nextSettings = readBackupSettingsFromPanel();
+        setBackupStatus('Restaurando backup...');
+        const payload = await readBackupFromGist(nextSettings);
+        applyBackupPayload(payload);
+        setBackupStatus(`Backup restaurado em ${formatDateTimeSingleLine(new Date())}.`);
+        render();
+      } catch (error) {
+        setBackupStatus(error && error.message ? error.message : 'Falha ao restaurar backup.', true);
+      }
+    });
+    [backupEnabled, backupAuto, backupGist, backupToken, backupFile].forEach(el => {
+      const eventName = el && el.type === 'checkbox' ? 'change' : 'input';
+      el.addEventListener(eventName, () => {
+        readBackupSettingsFromPanel();
+        if (backupStatus.textContent) setBackupStatus('');
+      });
+    });
 
     function render() {
       const db = loadDb();
