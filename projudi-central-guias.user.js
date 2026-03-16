@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      1.7
+// @version      1.8
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -994,7 +994,7 @@
       }
       .pj-guides-manager__backup-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 10px;
       }
       .pj-guides-manager__backup-field {
@@ -1010,6 +1010,7 @@
       }
       .pj-guides-manager__backup-field input {
         width: 100%;
+        min-width: 0;
       }
       .pj-guides-manager__backup-field--full {
         grid-column: 1 / -1;
@@ -1017,15 +1018,17 @@
       .pj-guides-manager__backup-row {
         display: flex;
         flex-wrap: wrap;
-        align-items: center;
+        align-items: flex-start;
         gap: 10px;
         margin-top: 10px;
       }
       .pj-guides-manager__backup-toggle {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 14px;
         flex-wrap: wrap;
+        flex: 1 1 100%;
+        min-width: 0;
       }
       .pj-guides-manager__backup-toggle label {
         display: inline-flex;
@@ -1034,9 +1037,15 @@
         font-weight: 500;
       }
       .pj-guides-manager__backup-status {
-        margin-left: auto;
+        flex: 1 1 100%;
         font-size: 12px;
         color: #47627f;
+      }
+      .pj-guides-manager__backup-row .pj-guides-btn {
+        white-space: nowrap;
+      }
+      .pj-guides-manager__backup-field .pj-guides-input {
+        min-width: 0;
       }
       .pj-guides-input,
       .pj-guides-select {
@@ -1625,7 +1634,7 @@
         </div>
         <div class="pj-guides-manager__backup">
           <div class="pj-guides-manager__backup-title">Backup remoto</div>
-          <div class="pj-guides-manager__backup-desc">Use um unico Gist privado e um arquivo separado para este script.</div>
+          <div class="pj-guides-manager__backup-desc">Use um unico Gist no Github e um arquivo separado para este script.</div>
           <div class="pj-guides-manager__backup-grid">
             <div class="pj-guides-manager__backup-field">
               <label for="pj-guides-backup-gist">Gist ID</label>
@@ -1642,11 +1651,11 @@
           </div>
           <div class="pj-guides-manager__backup-row">
             <div class="pj-guides-manager__backup-toggle">
-              <label><input id="pj-guides-backup-enabled" type="checkbox"> Ativar backup</label>
+              <label><input id="pj-guides-backup-enabled" type="checkbox"> Ativar backup por Gist no Github.</label>
               <label><input id="pj-guides-backup-auto" type="checkbox"> Backup automatico</label>
             </div>
             <button type="button" id="pj-guides-backup-send" class="pj-guides-btn">Enviar backup</button>
-            <button type="button" id="pj-guides-backup-restore" class="pj-guides-btn">Restaurar</button>
+            <button type="button" id="pj-guides-backup-restore" class="pj-guides-btn">Restaurar backup</button>
             <span id="pj-guides-backup-status" class="pj-guides-manager__backup-status"></span>
           </div>
         </div>
