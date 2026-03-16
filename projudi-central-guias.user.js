@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      2.1
+// @version      2.2
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -1655,7 +1655,7 @@
         </div>
         <div class="pj-guides-manager__backup">
           <div class="pj-guides-manager__backup-title">Backup remoto</div>
-          <div class="pj-guides-manager__backup-desc">Use um unico Gist no Github e um arquivo separado para este script.</div>
+          <div class="pj-guides-manager__backup-desc">Use um único Gist no GitHub e um arquivo separado para este script.</div>
           <div class="pj-guides-manager__backup-grid">
             <div class="pj-guides-manager__backup-field">
               <label for="pj-guides-backup-gist">Gist ID</label>
@@ -1672,8 +1672,8 @@
           </div>
           <div class="pj-guides-manager__backup-row">
             <div class="pj-guides-manager__backup-toggle">
-              <label><input id="pj-guides-backup-enabled" type="checkbox"> Ativar backup por Gist no Github.</label>
-              <label><input id="pj-guides-backup-auto" type="checkbox"> Backup automatico</label>
+              <label><input id="pj-guides-backup-enabled" type="checkbox"> Ativar backup por Gist no GitHub.</label>
+              <label><input id="pj-guides-backup-auto" type="checkbox"> Backup automático</label>
             </div>
             <button type="button" id="pj-guides-backup-send" class="pj-guides-btn">Enviar backup</button>
             <button type="button" id="pj-guides-backup-restore" class="pj-guides-btn">Restaurar backup</button>
