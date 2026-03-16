@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      1.8
+// @version      1.9
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -965,6 +965,10 @@
       .pj-guides-manager__body {
         padding: 12px 18px 18px;
         overflow: auto;
+        min-width: 0;
+      }
+      .pj-guides-manager__body > * {
+        min-width: 0;
       }
       .pj-guides-manager__toolbar {
         display: flex;
@@ -978,6 +982,8 @@
         border: 1px solid #d7e3ef;
         border-radius: 12px;
         background: #f8fbff;
+        min-width: 0;
+        overflow: hidden;
       }
       .pj-guides-manager__backup-title {
         margin: 0 0 4px;
@@ -994,13 +1000,16 @@
       }
       .pj-guides-manager__backup-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
+        min-width: 0;
       }
       .pj-guides-manager__backup-field {
         display: flex;
         flex-direction: column;
         gap: 4px;
+        min-width: 0;
+        width: 100%;
       }
       .pj-guides-manager__backup-field label,
       .pj-guides-manager__backup-toggle label {
@@ -1011,6 +1020,7 @@
       .pj-guides-manager__backup-field input {
         width: 100%;
         min-width: 0;
+        max-width: 100%;
       }
       .pj-guides-manager__backup-field--full {
         grid-column: 1 / -1;
@@ -1021,6 +1031,7 @@
         align-items: flex-start;
         gap: 10px;
         margin-top: 10px;
+        min-width: 0;
       }
       .pj-guides-manager__backup-toggle {
         display: flex;
@@ -1040,12 +1051,15 @@
         flex: 1 1 100%;
         font-size: 12px;
         color: #47627f;
+        min-width: 0;
       }
       .pj-guides-manager__backup-row .pj-guides-btn {
         white-space: nowrap;
       }
       .pj-guides-manager__backup-field .pj-guides-input {
         min-width: 0;
+        width: 100%;
+        max-width: 100%;
       }
       .pj-guides-input,
       .pj-guides-select {
@@ -1054,6 +1068,11 @@
         padding: 8px 10px;
         font-size: 13px;
         min-width: 180px;
+      }
+      @media (max-width: 860px) {
+        .pj-guides-manager__backup-grid {
+          grid-template-columns: 1fr;
+        }
       }
       .pj-guides-manager__table {
         table-layout: fixed;
