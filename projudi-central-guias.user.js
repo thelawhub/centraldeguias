@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      2.0
+// @version      2.1
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -954,6 +954,10 @@
         box-shadow: 0 28px 70px rgba(2, 11, 23, .35);
         border: 1px solid #d6e1eb;
       }
+      .pj-guides-manager,
+      .pj-guides-manager * {
+        box-sizing: border-box;
+      }
       .pj-guides-manager__header {
         padding: 12px 16px;
         margin-bottom: 0;
@@ -1021,6 +1025,7 @@
         width: 100%;
         min-width: 0;
         max-width: 100%;
+        box-sizing: border-box;
       }
       .pj-guides-manager__backup-field--full {
         grid-column: auto;
@@ -1060,6 +1065,7 @@
         min-width: 0;
         width: 100%;
         max-width: 100%;
+        box-sizing: border-box;
       }
       .pj-guides-input,
       .pj-guides-select {
@@ -1068,6 +1074,7 @@
         padding: 8px 10px;
         font-size: 13px;
         min-width: 180px;
+        box-sizing: border-box;
       }
       .pj-guides-manager__table {
         table-layout: fixed;
