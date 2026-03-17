@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      2.4
+// @version      2.5
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -1635,6 +1635,7 @@
     ensureStyles();
     const existing = document.getElementById('pj-guides-manager-overlay');
     if (existing) existing.remove();
+    let backupSettings = loadBackupSettings();
 
     const overlay = document.createElement('div');
     overlay.id = 'pj-guides-manager-overlay';
@@ -1690,7 +1691,7 @@
             <button type="button" id="pj-guides-backup-clear" class="pj-guides-btn pj-guides-btn--danger">Limpar backup</button>
             <span id="pj-guides-backup-status" class="pj-guides-manager__backup-status"></span>
           </div>
-          <div id="pj-guides-backup-last" class="pj-guides-manager__backup-last">${formatLastBackupLabel(loadBackupSettings().lastBackupAt)}</div>
+          <div id="pj-guides-backup-last" class="pj-guides-manager__backup-last">${formatLastBackupLabel(backupSettings.lastBackupAt)}</div>
         </div>
         <div id="pj-guides-manager-content"></div>
       </div>
@@ -1715,23 +1716,39 @@
     const backupClear = panel.querySelector('#pj-guides-backup-clear');
     const backupStatus = panel.querySelector('#pj-guides-backup-status');
     const backupLast = panel.querySelector('#pj-guides-backup-last');
-    let backupSettings = loadBackupSettings();
+    const hasBackupUi = [
+      backupEnabled,
+      backupAuto,
+      backupGist,
+      backupToken,
+      backupFile,
+      backupSend,
+      backupRestore,
+      backupClear,
+      backupStatus,
+      backupLast
+    ].every(Boolean);
 
-    backupEnabled.checked = backupSettings.enabled;
-    backupAuto.checked = backupSettings.autoBackupOnSave;
-    backupGist.value = backupSettings.gistId;
-    backupToken.value = backupSettings.token;
-    backupFile.value = backupSettings.fileName;
+    if (hasBackupUi) {
+      backupEnabled.checked = backupSettings.enabled;
+      backupAuto.checked = backupSettings.autoBackupOnSave;
+      backupGist.value = backupSettings.gistId;
+      backupToken.value = backupSettings.token;
+      backupFile.value = backupSettings.fileName;
+    }
 
     function setBackupStatus(message, isError) {
+      if (!hasBackupUi) return;
       backupStatus.textContent = message || '';
       backupStatus.style.color = isError ? '#b42318' : '#47627f';
     }
     function updateBackupLast() {
+      if (!hasBackupUi) return;
       backupLast.textContent = formatLastBackupLabel(backupSettings.lastBackupAt);
     }
 
     function readBackupSettingsFromPanel() {
+      if (!hasBackupUi) return backupSettings;
       backupSettings = saveBackupSettings({
         enabled: backupEnabled.checked,
         autoBackupOnSave: backupAuto.checked,
@@ -1753,44 +1770,46 @@
     }
     updateBackupLast();
 
-    backupSend.addEventListener('click', async () => {
-      try {
-        await runBackupNow();
-      } catch (error) {
-        setBackupStatus(error && error.message ? error.message : 'Falha ao enviar backup.', true);
-      }
-    });
-
-    backupRestore.addEventListener('click', async () => {
-      try {
-        const nextSettings = readBackupSettingsFromPanel();
-        setBackupStatus('Restaurando backup...');
-        const payload = await readBackupFromGist(nextSettings);
-        applyBackupPayload(payload);
-        setBackupStatus(`Backup restaurado em ${formatDateTimeSingleLine(new Date())}.`);
-        render();
-      } catch (error) {
-        setBackupStatus(error && error.message ? error.message : 'Falha ao restaurar backup.', true);
-      }
-    });
-    backupClear.addEventListener('click', () => {
-      const nextSettings = saveBackupSettings(DEFAULT_BACKUP_SETTINGS);
-      backupSettings = nextSettings;
-      backupEnabled.checked = nextSettings.enabled;
-      backupAuto.checked = nextSettings.autoBackupOnSave;
-      backupGist.value = nextSettings.gistId;
-      backupToken.value = nextSettings.token;
-      backupFile.value = nextSettings.fileName;
-      updateBackupLast();
-      setBackupStatus('Configuração de backup removida.');
-    });
-    [backupEnabled, backupAuto, backupGist, backupToken, backupFile].forEach(el => {
-      const eventName = el && el.type === 'checkbox' ? 'change' : 'input';
-      el.addEventListener(eventName, () => {
-        readBackupSettingsFromPanel();
-        if (backupStatus.textContent) setBackupStatus('');
+    if (hasBackupUi) {
+      backupSend.addEventListener('click', async () => {
+        try {
+          await runBackupNow();
+        } catch (error) {
+          setBackupStatus(error && error.message ? error.message : 'Falha ao enviar backup.', true);
+        }
       });
-    });
+
+      backupRestore.addEventListener('click', async () => {
+        try {
+          const nextSettings = readBackupSettingsFromPanel();
+          setBackupStatus('Restaurando backup...');
+          const payload = await readBackupFromGist(nextSettings);
+          applyBackupPayload(payload);
+          setBackupStatus(`Backup restaurado em ${formatDateTimeSingleLine(new Date())}.`);
+          render();
+        } catch (error) {
+          setBackupStatus(error && error.message ? error.message : 'Falha ao restaurar backup.', true);
+        }
+      });
+      backupClear.addEventListener('click', () => {
+        const nextSettings = saveBackupSettings(DEFAULT_BACKUP_SETTINGS);
+        backupSettings = nextSettings;
+        backupEnabled.checked = nextSettings.enabled;
+        backupAuto.checked = nextSettings.autoBackupOnSave;
+        backupGist.value = nextSettings.gistId;
+        backupToken.value = nextSettings.token;
+        backupFile.value = nextSettings.fileName;
+        updateBackupLast();
+        setBackupStatus('Configuração de backup removida.');
+      });
+      [backupEnabled, backupAuto, backupGist, backupToken, backupFile].forEach(el => {
+        const eventName = el && el.type === 'checkbox' ? 'change' : 'input';
+        el.addEventListener(eventName, () => {
+          readBackupSettingsFromPanel();
+          if (backupStatus.textContent) setBackupStatus('');
+        });
+      });
+    }
 
     function render() {
       const db = loadDb();
