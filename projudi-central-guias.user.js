@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      2.2
+// @version      2.3
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -1677,6 +1677,7 @@
             </div>
             <button type="button" id="pj-guides-backup-send" class="pj-guides-btn">Enviar backup</button>
             <button type="button" id="pj-guides-backup-restore" class="pj-guides-btn">Restaurar backup</button>
+            <button type="button" id="pj-guides-backup-clear" class="pj-guides-btn pj-guides-btn--danger">Limpar backup</button>
             <span id="pj-guides-backup-status" class="pj-guides-manager__backup-status"></span>
           </div>
         </div>
@@ -1700,6 +1701,7 @@
     const backupFile = panel.querySelector('#pj-guides-backup-file');
     const backupSend = panel.querySelector('#pj-guides-backup-send');
     const backupRestore = panel.querySelector('#pj-guides-backup-restore');
+    const backupClear = panel.querySelector('#pj-guides-backup-clear');
     const backupStatus = panel.querySelector('#pj-guides-backup-status');
     const backupSettings = loadBackupSettings();
 
@@ -1750,6 +1752,15 @@
       } catch (error) {
         setBackupStatus(error && error.message ? error.message : 'Falha ao restaurar backup.', true);
       }
+    });
+    backupClear.addEventListener('click', () => {
+      const nextSettings = saveBackupSettings(DEFAULT_BACKUP_SETTINGS);
+      backupEnabled.checked = nextSettings.enabled;
+      backupAuto.checked = nextSettings.autoBackupOnSave;
+      backupGist.value = nextSettings.gistId;
+      backupToken.value = nextSettings.token;
+      backupFile.value = nextSettings.fileName;
+      setBackupStatus('Configuração de backup removida.');
     });
     [backupEnabled, backupAuto, backupGist, backupToken, backupFile].forEach(el => {
       const eventName = el && el.type === 'checkbox' ? 'change' : 'input';
