@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      2.5
+// @version      2.6
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -57,7 +57,8 @@
     token: '',
     fileName: SCRIPT_META.fileName,
     autoBackupOnSave: false,
-    lastBackupAt: ''
+    lastBackupAt: '',
+    lastBackupSignature: ''
   };
   const UI_Z = 2147483200;
   const ALERT_BUSINESS_DAYS = 7;
@@ -112,6 +113,7 @@
     next.fileName = String(next.fileName || SCRIPT_META.fileName).trim() || SCRIPT_META.fileName;
     next.autoBackupOnSave = !!next.autoBackupOnSave;
     next.lastBackupAt = String(next.lastBackupAt || '').trim();
+    next.lastBackupSignature = String(next.lastBackupSignature || '').trim();
     return next;
   }
 
@@ -132,6 +134,56 @@
     return normalized;
   }
 
+  function buildBackupDbSnapshot(db = loadDb()) {
+    const source = normalizeDb(db);
+    const processKeys = Object.keys(source.processes || {}).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const processes = {};
+    processKeys.forEach(key => {
+      const proc = source.processes[key];
+      if (!proc) return;
+      processes[key] = {
+        key: proc.key || key,
+        processId: proc.processId || '',
+        cnj: proc.cnj || '',
+        shortNumber: proc.shortNumber || '',
+        area: proc.area || '',
+        serventia: proc.serventia || '',
+        classe: proc.classe || '',
+        assunto: proc.assunto || '',
+        processUrl: proc.processUrl || '',
+        guides: (Array.isArray(proc.guides) ? proc.guides : [])
+          .slice()
+          .sort((a, b) => {
+            const rowDiff = (Number(a.rowNumber) || Number.MAX_SAFE_INTEGER) - (Number(b.rowNumber) || Number.MAX_SAFE_INTEGER);
+            if (rowDiff !== 0) return rowDiff;
+            return String(a.guideId || a.number || '').localeCompare(String(b.guideId || b.number || ''), 'pt-BR');
+          })
+          .map(guide => ({
+            rowNumber: guide.rowNumber || '',
+            guideId: guide.guideId || '',
+            number: guide.number || '',
+            type: guide.type || '',
+            issueDate: guide.issueDate || '',
+            dueDate: guide.dueDate || '',
+            receivedDate: guide.receivedDate || '',
+            canceledDate: guide.canceledDate || '',
+            situation: guide.situation || '',
+            nature: guide.nature || '',
+            installmentText: guide.installmentText || '',
+            installmentNumber: guide.installmentNumber == null ? null : guide.installmentNumber,
+            installmentTotal: guide.installmentTotal == null ? null : guide.installmentTotal,
+            detailUrl: guide.detailUrl || '',
+            manual: normalizeManual(guide.manual)
+          }))
+      };
+    });
+    return { version: 1, processes };
+  }
+
+  function buildBackupSignature(db = loadDb()) {
+    return JSON.stringify(buildBackupDbSnapshot(db));
+  }
+
   function buildBackupPayload() {
     return {
       schema: BACKUP_SCHEMA,
@@ -140,7 +192,7 @@
       version: SCRIPT_META.version,
       exportedAt: nowIso(),
       host: location.host,
-      db: loadDb()
+      db: buildBackupDbSnapshot()
     };
   }
 
@@ -311,19 +363,21 @@
 
   function saveDb(db) {
     storage.set(STORAGE_KEY, db);
-    scheduleAutoBackup();
+    scheduleAutoBackup(db);
   }
 
-  function scheduleAutoBackup() {
+  function scheduleAutoBackup(db = loadDb()) {
     clearTimeout(state.backupTimer);
     state.backupTimer = null;
     const backupSettings = loadBackupSettings();
     if (!backupSettings.enabled || !backupSettings.autoBackupOnSave) return;
+    const backupSignature = buildBackupSignature(db);
+    if (backupSignature === backupSettings.lastBackupSignature) return;
     state.backupTimer = setTimeout(async () => {
       state.backupTimer = null;
       try {
         await pushBackupToGist(backupSettings, buildBackupPayload());
-        saveBackupSettings({ ...backupSettings, lastBackupAt: nowIso() });
+        saveBackupSettings({ ...backupSettings, lastBackupAt: nowIso(), lastBackupSignature: backupSignature });
       } catch (_) {}
     }, 800);
   }
@@ -1762,8 +1816,9 @@
     async function runBackupNow() {
       let nextSettings = readBackupSettingsFromPanel();
       setBackupStatus('Enviando backup...');
+      const backupSignature = buildBackupSignature();
       await pushBackupToGist(nextSettings, buildBackupPayload());
-      nextSettings = saveBackupSettings({ ...nextSettings, lastBackupAt: nowIso() });
+      nextSettings = saveBackupSettings({ ...nextSettings, lastBackupAt: nowIso(), lastBackupSignature: backupSignature });
       backupSettings = nextSettings;
       updateBackupLast();
       setBackupStatus(`Backup enviado em ${formatDateTimeSingleLine(new Date())}.`);
@@ -1781,10 +1836,12 @@
 
       backupRestore.addEventListener('click', async () => {
         try {
-          const nextSettings = readBackupSettingsFromPanel();
+          let nextSettings = readBackupSettingsFromPanel();
           setBackupStatus('Restaurando backup...');
           const payload = await readBackupFromGist(nextSettings);
           applyBackupPayload(payload);
+          nextSettings = saveBackupSettings({ ...nextSettings, lastBackupSignature: buildBackupSignature(payload.db || loadDb()) });
+          backupSettings = nextSettings;
           setBackupStatus(`Backup restaurado em ${formatDateTimeSingleLine(new Date())}.`);
           render();
         } catch (error) {
