@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      2.3
+// @version      2.4
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -56,7 +56,8 @@
     gistId: '',
     token: '',
     fileName: SCRIPT_META.fileName,
-    autoBackupOnSave: false
+    autoBackupOnSave: false,
+    lastBackupAt: ''
   };
   const UI_Z = 2147483200;
   const ALERT_BUSINESS_DAYS = 7;
@@ -110,7 +111,15 @@
     next.token = String(next.token || '').trim();
     next.fileName = String(next.fileName || SCRIPT_META.fileName).trim() || SCRIPT_META.fileName;
     next.autoBackupOnSave = !!next.autoBackupOnSave;
+    next.lastBackupAt = String(next.lastBackupAt || '').trim();
     return next;
+  }
+
+  function formatLastBackupLabel(value) {
+    if (!value) return 'Último backup: ainda não enviado.';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Último backup: ainda não enviado.';
+    return `Último backup: ${date.toLocaleString('pt-BR')}.`;
   }
 
   function loadBackupSettings() {
@@ -314,6 +323,7 @@
       state.backupTimer = null;
       try {
         await pushBackupToGist(backupSettings, buildBackupPayload());
+        saveBackupSettings({ ...backupSettings, lastBackupAt: nowIso() });
       } catch (_) {}
     }, 800);
   }
@@ -1680,6 +1690,7 @@
             <button type="button" id="pj-guides-backup-clear" class="pj-guides-btn pj-guides-btn--danger">Limpar backup</button>
             <span id="pj-guides-backup-status" class="pj-guides-manager__backup-status"></span>
           </div>
+          <div id="pj-guides-backup-last" class="pj-guides-manager__backup-last">${formatLastBackupLabel(loadBackupSettings().lastBackupAt)}</div>
         </div>
         <div id="pj-guides-manager-content"></div>
       </div>
@@ -1703,7 +1714,8 @@
     const backupRestore = panel.querySelector('#pj-guides-backup-restore');
     const backupClear = panel.querySelector('#pj-guides-backup-clear');
     const backupStatus = panel.querySelector('#pj-guides-backup-status');
-    const backupSettings = loadBackupSettings();
+    const backupLast = panel.querySelector('#pj-guides-backup-last');
+    let backupSettings = loadBackupSettings();
 
     backupEnabled.checked = backupSettings.enabled;
     backupAuto.checked = backupSettings.autoBackupOnSave;
@@ -1715,23 +1727,31 @@
       backupStatus.textContent = message || '';
       backupStatus.style.color = isError ? '#b42318' : '#47627f';
     }
+    function updateBackupLast() {
+      backupLast.textContent = formatLastBackupLabel(backupSettings.lastBackupAt);
+    }
 
     function readBackupSettingsFromPanel() {
-      return saveBackupSettings({
+      backupSettings = saveBackupSettings({
         enabled: backupEnabled.checked,
         autoBackupOnSave: backupAuto.checked,
         gistId: backupGist.value,
         token: backupToken.value,
         fileName: backupFile.value
       });
+      return backupSettings;
     }
 
     async function runBackupNow() {
-      const nextSettings = readBackupSettingsFromPanel();
+      let nextSettings = readBackupSettingsFromPanel();
       setBackupStatus('Enviando backup...');
       await pushBackupToGist(nextSettings, buildBackupPayload());
+      nextSettings = saveBackupSettings({ ...nextSettings, lastBackupAt: nowIso() });
+      backupSettings = nextSettings;
+      updateBackupLast();
       setBackupStatus(`Backup enviado em ${formatDateTimeSingleLine(new Date())}.`);
     }
+    updateBackupLast();
 
     backupSend.addEventListener('click', async () => {
       try {
@@ -1755,11 +1775,13 @@
     });
     backupClear.addEventListener('click', () => {
       const nextSettings = saveBackupSettings(DEFAULT_BACKUP_SETTINGS);
+      backupSettings = nextSettings;
       backupEnabled.checked = nextSettings.enabled;
       backupAuto.checked = nextSettings.autoBackupOnSave;
       backupGist.value = nextSettings.gistId;
       backupToken.value = nextSettings.token;
       backupFile.value = nextSettings.fileName;
+      updateBackupLast();
       setBackupStatus('Configuração de backup removida.');
     });
     [backupEnabled, backupAuto, backupGist, backupToken, backupFile].forEach(el => {
