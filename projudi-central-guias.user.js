@@ -356,8 +356,49 @@
 
   function loadDb() {
     const raw = storage.get(STORAGE_KEY, null);
-    const next = raw && typeof raw === 'object' ? raw : {};
-    const processes = next.processes && typeof next.processes === 'object' ? next.processes : {};
+    return normalizeDb(raw);
+  }
+
+  function normalizeDb(value) {
+    const next = value && typeof value === 'object' ? value : {};
+    const sourceProcesses = next.processes && typeof next.processes === 'object' ? next.processes : {};
+    const processes = {};
+    Object.keys(sourceProcesses).forEach(key => {
+      const proc = sourceProcesses[key];
+      if (!proc || typeof proc !== 'object') return;
+      processes[key] = {
+        key: proc.key || key,
+        processId: String(proc.processId || '').trim(),
+        cnj: String(proc.cnj || '').trim(),
+        shortNumber: String(proc.shortNumber || '').trim(),
+        area: String(proc.area || '').trim(),
+        serventia: String(proc.serventia || '').trim(),
+        classe: String(proc.classe || '').trim(),
+        assunto: String(proc.assunto || '').trim(),
+        processUrl: String(proc.processUrl || '').trim(),
+        lastProcessSeenAt: String(proc.lastProcessSeenAt || '').trim(),
+        lastGuidesSyncAt: String(proc.lastGuidesSyncAt || '').trim(),
+        lastGuidesSyncSource: String(proc.lastGuidesSyncSource || '').trim(),
+        guides: (Array.isArray(proc.guides) ? proc.guides : []).map((guide, index) => ({
+          rowNumber: guide && guide.rowNumber != null ? guide.rowNumber : index + 1,
+          guideId: String(guide && guide.guideId || '').trim(),
+          number: String(guide && guide.number || '').trim(),
+          type: String(guide && guide.type || '').trim(),
+          issueDate: String(guide && guide.issueDate || '').trim(),
+          dueDate: String(guide && guide.dueDate || '').trim(),
+          receivedDate: String(guide && guide.receivedDate || '').trim(),
+          canceledDate: String(guide && guide.canceledDate || '').trim(),
+          situation: String(guide && guide.situation || '').trim(),
+          nature: String(guide && guide.nature || '').trim(),
+          installmentText: String(guide && guide.installmentText || '').trim(),
+          installmentNumber: guide && guide.installmentNumber != null ? Number(guide.installmentNumber) : null,
+          installmentTotal: guide && guide.installmentTotal != null ? Number(guide.installmentTotal) : null,
+          detailUrl: String(guide && guide.detailUrl || '').trim(),
+          lastSeenAt: String(guide && guide.lastSeenAt || '').trim(),
+          manual: normalizeManual(guide && guide.manual)
+        }))
+      };
+    });
     return { version: 1, processes };
   }
 
