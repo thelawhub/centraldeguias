@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      2.6
+// @version      2.7
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -1072,35 +1072,57 @@
       }
       .pj-guides-manager__title { color: #fff; font-size: 17px; }
       .pj-guides-manager__body {
-        padding: 12px 18px 18px;
+        padding: 16px 18px 18px;
         overflow: auto;
         min-width: 0;
+        background: linear-gradient(180deg, #f8fbff 0%, #f2f6fc 100%);
       }
       .pj-guides-manager__body > * {
         min-width: 0;
+      }
+      .pj-guides-manager__section {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .pj-guides-manager__section:last-child {
+        margin-bottom: 0;
+      }
+      .pj-guides-manager__section-title {
+        margin: 0 0 0 2px;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .03em;
       }
       .pj-guides-manager__toolbar {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        margin-bottom: 12px;
+        padding: 14px 16px;
+        border: 1px solid #dbe3ef;
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
       }
       .pj-guides-manager__backup {
-        margin-bottom: 14px;
-        padding: 12px;
-        border: 1px solid #d7e3ef;
+        padding: 14px 16px;
+        border: 1px solid #dbe3ef;
         border-radius: 12px;
-        background: #f8fbff;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
         min-width: 0;
         overflow: hidden;
       }
       .pj-guides-manager__backup-title {
-        margin: 0 0 4px;
+        margin: 0 0 6px;
         font-size: 12px;
         font-weight: 700;
-        color: #17365d;
+        color: #334155;
         text-transform: uppercase;
-        letter-spacing: .04em;
+        letter-spacing: .03em;
       }
       .pj-guides-manager__backup-desc {
         margin: 0 0 10px;
@@ -1156,12 +1178,21 @@
         align-items: center;
         gap: 6px;
         font-weight: 500;
+        padding: 8px 10px;
+        border: 1px solid #dbe3ef;
+        border-radius: 999px;
+        background: #f8fbff;
       }
       .pj-guides-manager__backup-status {
         flex: 1 1 100%;
         font-size: 12px;
         color: #47627f;
         min-width: 0;
+      }
+      .pj-guides-manager__backup-last {
+        margin-top: 8px;
+        color: #94a3b8;
+        font-size: 11px;
       }
       .pj-guides-manager__backup-row .pj-guides-btn {
         white-space: nowrap;
@@ -1183,6 +1214,10 @@
       }
       .pj-guides-manager__table {
         table-layout: fixed;
+        border: 1px solid #dbe3ef;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #ffffff;
       }
       .pj-guides-col-process { width: 14%; }
       .pj-guides-col-guide { width: 17%; }
@@ -1240,7 +1275,16 @@
         border: 1px dashed #cfdbe8;
         border-radius: 12px;
         color: #647990;
-        background: #f7fbff;
+        background: #ffffff;
+      }
+      #pj-guides-manager-content {
+        display: grid;
+        gap: 10px;
+        padding: 14px 16px;
+        border: 1px solid #dbe3ef;
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
       }
       .pj-guides-close-btn {
         width: 30px;
@@ -1747,48 +1791,56 @@
         <button type="button" class="pj-guides-btn pj-guides-close-btn" aria-label="Fechar painel">&times;</button>
       </div>
       <div class="pj-guides-manager__body">
-        <div class="pj-guides-manager__toolbar">
-          <input id="pj-guides-search" class="pj-guides-input" type="text" placeholder="Buscar processo, guia ou situação">
-          <select id="pj-guides-filter" class="pj-guides-select">
-            <option value="all">Todas</option>
-            <option value="overdue">Vencidas</option>
-            <option value="due_soon">Próximos</option>
-            <option value="due_week">Semana</option>
-            <option value="open">Em aberto</option>
-            <option value="ignored">Ignoradas</option>
-            <option value="paid">Pagas</option>
-          </select>
-        </div>
-        <div class="pj-guides-manager__backup">
-          <div class="pj-guides-manager__backup-title">Backup remoto</div>
-          <div class="pj-guides-manager__backup-desc">Use um único Gist no GitHub e um arquivo separado para este script.</div>
-          <div class="pj-guides-manager__backup-grid">
-            <div class="pj-guides-manager__backup-field">
-              <label for="pj-guides-backup-gist">Gist ID</label>
-              <input id="pj-guides-backup-gist" class="pj-guides-input" type="text" placeholder="Cole o Gist ID">
-            </div>
-            <div class="pj-guides-manager__backup-field">
-              <label for="pj-guides-backup-file">Arquivo</label>
-              <input id="pj-guides-backup-file" class="pj-guides-input" type="text" placeholder="projudi-central-guias.json">
-            </div>
-            <div class="pj-guides-manager__backup-field pj-guides-manager__backup-field--full">
-              <label for="pj-guides-backup-token">Token do GitHub</label>
-              <input id="pj-guides-backup-token" class="pj-guides-input" type="password" placeholder="ghp_...">
-            </div>
+        <section class="pj-guides-manager__section">
+          <div class="pj-guides-manager__section-title">Filtros</div>
+          <div class="pj-guides-manager__toolbar">
+            <input id="pj-guides-search" class="pj-guides-input" type="text" placeholder="Buscar processo, guia ou situação">
+            <select id="pj-guides-filter" class="pj-guides-select">
+              <option value="all">Todas</option>
+              <option value="overdue">Vencidas</option>
+              <option value="due_soon">Próximos</option>
+              <option value="due_week">Semana</option>
+              <option value="open">Em aberto</option>
+              <option value="ignored">Ignoradas</option>
+              <option value="paid">Pagas</option>
+            </select>
           </div>
-          <div class="pj-guides-manager__backup-row">
-            <div class="pj-guides-manager__backup-toggle">
-              <label><input id="pj-guides-backup-enabled" type="checkbox"> Ativar backup por Gist no GitHub.</label>
-              <label><input id="pj-guides-backup-auto" type="checkbox"> Backup automático</label>
+        </section>
+        <section class="pj-guides-manager__section">
+          <div class="pj-guides-manager__section-title">Backup remoto</div>
+          <div class="pj-guides-manager__backup">
+            <div class="pj-guides-manager__backup-desc">Use um único Gist no GitHub e um arquivo separado para este script.</div>
+            <div class="pj-guides-manager__backup-grid">
+              <div class="pj-guides-manager__backup-field">
+                <label for="pj-guides-backup-gist">Gist ID</label>
+                <input id="pj-guides-backup-gist" class="pj-guides-input" type="text" placeholder="Cole o Gist ID">
+              </div>
+              <div class="pj-guides-manager__backup-field">
+                <label for="pj-guides-backup-file">Arquivo</label>
+                <input id="pj-guides-backup-file" class="pj-guides-input" type="text" placeholder="projudi-central-guias.json">
+              </div>
+              <div class="pj-guides-manager__backup-field pj-guides-manager__backup-field--full">
+                <label for="pj-guides-backup-token">Token do GitHub</label>
+                <input id="pj-guides-backup-token" class="pj-guides-input" type="password" placeholder="ghp_...">
+              </div>
             </div>
-            <button type="button" id="pj-guides-backup-send" class="pj-guides-btn">Enviar backup</button>
-            <button type="button" id="pj-guides-backup-restore" class="pj-guides-btn">Restaurar backup</button>
-            <button type="button" id="pj-guides-backup-clear" class="pj-guides-btn pj-guides-btn--danger">Limpar backup</button>
-            <span id="pj-guides-backup-status" class="pj-guides-manager__backup-status"></span>
+            <div class="pj-guides-manager__backup-row">
+              <div class="pj-guides-manager__backup-toggle">
+                <label><input id="pj-guides-backup-enabled" type="checkbox"> Ativar backup por Gist no GitHub.</label>
+                <label><input id="pj-guides-backup-auto" type="checkbox"> Backup automático</label>
+              </div>
+              <button type="button" id="pj-guides-backup-send" class="pj-guides-btn">Enviar backup</button>
+              <button type="button" id="pj-guides-backup-restore" class="pj-guides-btn">Restaurar backup</button>
+              <button type="button" id="pj-guides-backup-clear" class="pj-guides-btn pj-guides-btn--danger">Limpar backup</button>
+              <span id="pj-guides-backup-status" class="pj-guides-manager__backup-status"></span>
+            </div>
+            <div id="pj-guides-backup-last" class="pj-guides-manager__backup-last">${formatLastBackupLabel(backupSettings.lastBackupAt)}</div>
           </div>
-          <div id="pj-guides-backup-last" class="pj-guides-manager__backup-last">${formatLastBackupLabel(backupSettings.lastBackupAt)}</div>
-        </div>
-        <div id="pj-guides-manager-content"></div>
+        </section>
+        <section class="pj-guides-manager__section">
+          <div class="pj-guides-manager__section-title">Guias monitoradas</div>
+          <div id="pj-guides-manager-content"></div>
+        </section>
       </div>
     `;
 
