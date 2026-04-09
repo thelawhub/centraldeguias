@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      2.9
+// @version      3.0
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -882,6 +882,9 @@
         margin-top: 6px;
         justify-content: flex-start;
       }
+      .pj-guides-inline__actions {
+        justify-content: center;
+      }
       .pj-guides-btn {
         display: inline-flex;
         align-items: center;
@@ -930,6 +933,26 @@
       .pj-guides-btn--icon.pj-guides-btn--warn,
       .pj-guides-btn--icon.pj-guides-btn--danger {
         padding: 0;
+      }
+      .pj-guides-btn--inline-action {
+        min-width: 118px;
+        min-height: 26px;
+        padding: 4px 18px;
+        border: 1px solid #2b69aa;
+        border-radius: 5px;
+        background: #2b69aa;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.1;
+        text-align: center;
+        letter-spacing: 0;
+        box-shadow: none;
+      }
+      .pj-guides-btn--inline-action:hover {
+        background: #245a92;
+        border-color: #245a92;
+        color: #fff;
       }
       .pj-guides-btn--tool {
         width: auto;
@@ -1077,6 +1100,8 @@
         overflow: auto;
         min-width: 0;
         background: linear-gradient(180deg, #f8fbff 0%, #f2f6fc 100%);
+        display: grid;
+        gap: 14px;
       }
       .pj-guides-manager__body > * {
         min-width: 0;
@@ -1099,14 +1124,172 @@
         letter-spacing: .03em;
       }
       .pj-guides-manager__toolbar {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
         gap: 10px;
         padding: 14px 16px;
         border: 1px solid #dbe3ef;
         border-radius: 12px;
         background: #ffffff;
         box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+      }
+      .pj-guides-manager__toolbar-head,
+      .pj-guides-manager__list-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .pj-guides-manager__toolbar-title-wrap {
+        display: grid;
+        gap: 4px;
+      }
+      .pj-guides-manager__toolbar-title,
+      .pj-guides-manager__list-title {
+        margin: 0;
+        color: #223750;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+      .pj-guides-manager__toolbar-meta,
+      .pj-guides-manager__list-meta {
+        color: #60748d;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .pj-guides-manager__toolbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .pj-guides-manager__toolbar-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.8fr) minmax(210px, .8fr) auto;
+        gap: 10px;
+        align-items: center;
+      }
+      .pj-guides-manager__summary {
+        display: grid;
+        gap: 12px;
+        padding: 14px 16px;
+        border: 1px solid #dbe3ef;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #ffffff 0%, #f5f9ff 100%);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+      }
+      .pj-guides-manager__summary-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .pj-guides-manager__summary-title-wrap {
+        display: grid;
+        gap: 4px;
+      }
+      .pj-guides-manager__summary-title {
+        margin: 0;
+        color: #17365d;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+      .pj-guides-manager__summary-subtitle {
+        color: #5d7390;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .pj-guides-manager__summary-badges {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .pj-guides-manager__summary-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #eef4fb;
+        color: #355576;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .pj-guides-manager__summary-badge--warn {
+        background: #fff4da;
+        color: #8d5b0a;
+      }
+      .pj-guides-manager__summary-badge--danger {
+        background: #fde7e7;
+        color: #9a2626;
+      }
+      .pj-guides-manager__stats {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .pj-guides-manager__stat {
+        display: grid;
+        gap: 4px;
+        padding: 10px 12px;
+        border: 1px solid #d9e4f0;
+        border-radius: 12px;
+        background: #fff;
+      }
+      .pj-guides-manager__stat-label {
+        color: #60758f;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+      }
+      .pj-guides-manager__stat-value {
+        color: #17365d;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .pj-guides-manager__stat-note {
+        color: #6b7f97;
+        font-size: 11px;
+        line-height: 1.25;
+      }
+      .pj-guides-manager__stat--danger {
+        background: linear-gradient(180deg, #fff7f7 0%, #ffeaea 100%);
+      }
+      .pj-guides-manager__stat--danger .pj-guides-manager__stat-value {
+        color: #9a2626;
+      }
+      .pj-guides-manager__stat--warn {
+        background: linear-gradient(180deg, #fffaf0 0%, #fff2d8 100%);
+      }
+      .pj-guides-manager__stat--warn .pj-guides-manager__stat-value {
+        color: #8d5b0a;
+      }
+      .pj-guides-manager__stat--ok {
+        background: linear-gradient(180deg, #f3fbf5 0%, #e6f5ea 100%);
+      }
+      .pj-guides-manager__stat--ok .pj-guides-manager__stat-value {
+        color: #1e6a33;
+      }
+      .pj-guides-manager__list-shell {
+        display: grid;
+        gap: 12px;
+        padding: 14px 16px;
+        border: 1px solid #dbe3ef;
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+      }
+      .pj-guides-manager__table-wrap {
+        overflow: auto;
+        border: 1px solid #dbe3ef;
+        border-radius: 12px;
+        background: #fff;
       }
       .pj-guides-manager__backup {
         padding: 14px 16px;
@@ -1116,6 +1299,9 @@
         box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
         min-width: 0;
         overflow: hidden;
+      }
+      .pj-guides-manager__backup[hidden] {
+        display: none;
       }
       .pj-guides-manager__backup-title {
         margin: 0 0 6px;
@@ -1215,9 +1401,10 @@
       }
       .pj-guides-manager__table {
         table-layout: fixed;
-        border: 1px solid #dbe3ef;
-        border-radius: 12px;
-        overflow: hidden;
+        width: 100%;
+        border: 0;
+        border-radius: 0;
+        overflow: visible;
         background: #ffffff;
       }
       .pj-guides-col-process { width: 14%; }
@@ -1277,15 +1464,25 @@
         border-radius: 12px;
         color: #647990;
         background: #ffffff;
+        text-align: center;
       }
       #pj-guides-manager-content {
         display: grid;
         gap: 10px;
-        padding: 14px 16px;
-        border: 1px solid #dbe3ef;
-        border-radius: 12px;
-        background: #ffffff;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+      .pj-guides-manager__table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f8fbff;
+      }
+      .pj-guides-manager__table tbody tr:hover {
+        background: #f8fbff;
       }
       .pj-guides-close-btn {
         width: 30px;
@@ -1314,12 +1511,47 @@
         font-size: 11px;
         text-align: center;
       }
+      .pj-guides-manager .pj-guides-btn--subtle {
+        border-color: #d0dceb;
+        background: #f8fbff;
+        color: #2c4b70;
+      }
+      .pj-guides-manager .pj-guides-btn--subtle:hover {
+        background: #eef4fb;
+      }
       .pj-guides-manager .pj-guides-btn--icon {
         padding: 0;
         width: 32px;
         min-width: 32px;
         height: 32px;
         font-size: 13px;
+      }
+      @media (max-width: 1080px) {
+        .pj-guides-manager__stats {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .pj-guides-manager__toolbar-grid {
+          grid-template-columns: minmax(0, 1fr) minmax(180px, .8fr);
+        }
+      }
+      @media (max-width: 780px) {
+        .pj-guides-manager__body {
+          padding: 12px;
+        }
+        .pj-guides-manager__stats,
+        .pj-guides-manager__toolbar-grid {
+          grid-template-columns: 1fr;
+        }
+        .pj-guides-manager__summary-head,
+        .pj-guides-manager__toolbar-head,
+        .pj-guides-manager__list-head {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .pj-guides-manager__toolbar-actions,
+        .pj-guides-manager__summary-badges {
+          justify-content: flex-start;
+        }
       }
       .pj-guides-header-menu a {
         color: #484848;
@@ -1450,6 +1682,17 @@
     return btn;
   }
 
+  function createTextButton(label, className, onClick) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = className;
+    btn.textContent = label;
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.addEventListener('click', onClick);
+    return btn;
+  }
+
   function getCompactInstallmentText(guide) {
     if (guide.installmentNumber && guide.installmentTotal) {
       return `Parcela ${guide.installmentNumber} de ${guide.installmentTotal}`;
@@ -1517,8 +1760,8 @@
 
     const actions = document.createElement('div');
     actions.className = 'pj-guides-inline__actions';
-    actions.appendChild(createIconButton('fa-solid fa-folder-open', 'Abrir Consultar Guias', 'pj-guides-btn pj-guides-btn--tool', () => navigateToUrl('GuiaEmissao?PaginaAtual=6')));
-    actions.appendChild(createIconButton('fa-solid fa-table-columns', 'Abrir Painel', 'pj-guides-btn pj-guides-btn--tool', () => openManager(processRecord.key)));
+    actions.appendChild(createTextButton('Consultar Guias', 'pj-guides-btn pj-guides-btn--inline-action', () => navigateToUrl('GuiaEmissao?PaginaAtual=6')));
+    actions.appendChild(createTextButton('Abrir Painel', 'pj-guides-btn pj-guides-btn--inline-action', () => openManager(processRecord.key)));
     card.appendChild(actions);
 
     anchor.insertAdjacentElement('afterend', card);
@@ -1571,14 +1814,14 @@
 
     const actions = document.createElement('div');
     actions.className = 'pj-guides-inline__actions';
-    actions.appendChild(createIconButton('fa-solid fa-rotate-right', 'Sincronizar agora', 'pj-guides-btn pj-guides-btn--tool', () => {
+    actions.appendChild(createTextButton('Sincronizar', 'pj-guides-btn pj-guides-btn--inline-action', () => {
       const result = syncGuidesFromPage();
       if (!result) return;
       card.remove();
       state.guidesMounted = false;
       mountGuidesCard();
     }));
-    actions.appendChild(createIconButton('fa-solid fa-table-columns', 'Abrir painel', 'pj-guides-btn pj-guides-btn--tool', () => openManager(processRecord.key)));
+    actions.appendChild(createTextButton('Abrir Painel', 'pj-guides-btn pj-guides-btn--inline-action', () => openManager(processRecord.key)));
     card.appendChild(actions);
 
     target.insertAdjacentElement('afterbegin', card);
@@ -1757,6 +2000,26 @@
     return rows;
   }
 
+  function summarizeManagerRows(db, rows) {
+    const processes = allProcessesSorted(db);
+    const openStatuses = ['open', 'due_week', 'due_soon', 'due_today', 'overdue'];
+    const criticalStatuses = ['overdue', 'due_today', 'due_soon'];
+    const paidStatuses = ['paid', 'gratuidade', 'paid_manual', 'parcelamento_pago', 'parcelamento_realizado'];
+    return {
+      processCount: processes.length,
+      totalGuides: rows.length,
+      open: rows.filter(row => openStatuses.includes(row.status)).length,
+      critical: rows.filter(row => criticalStatuses.includes(row.status)).length,
+      notified: rows.filter(row => row.guide && row.guide.manual && row.guide.manual.notified).length,
+      ignored: rows.filter(row => row.status === 'ignored').length,
+      paid: rows.filter(row => paidStatuses.includes(row.status)).length,
+      staleProcesses: processes.filter(processRecord => {
+        const summary = computeProcessSummary(processRecord);
+        return summary.staleSync || summary.neverSynced;
+      }).length
+    };
+  }
+
   function updateGuideManual(processKey, guideIdentifier, patch) {
     const db = loadDb();
     const processRecord = db.processes[processKey];
@@ -1793,23 +2056,48 @@
       </div>
       <div class="pj-guides-manager__body">
         <section class="pj-guides-manager__section">
-          <div class="pj-guides-manager__section-title">Filtros</div>
+          <div id="pj-guides-manager-summary" class="pj-guides-manager__summary"></div>
+        </section>
+        <section class="pj-guides-manager__section">
           <div class="pj-guides-manager__toolbar">
-            <input id="pj-guides-search" class="pj-guides-input" type="text" placeholder="Buscar processo, guia ou situação">
-            <select id="pj-guides-filter" class="pj-guides-select">
-              <option value="all">Todas</option>
-              <option value="overdue">Vencidas</option>
-              <option value="due_soon">Próximos</option>
-              <option value="due_week">Semana</option>
-              <option value="open">Em aberto</option>
-              <option value="ignored">Ignoradas</option>
-              <option value="paid">Pagas</option>
-            </select>
+            <div class="pj-guides-manager__toolbar-head">
+              <div class="pj-guides-manager__toolbar-title-wrap">
+                <div class="pj-guides-manager__toolbar-title">Filtros e navegação</div>
+                <div id="pj-guides-manager-toolbar-meta" class="pj-guides-manager__toolbar-meta"></div>
+              </div>
+              <div class="pj-guides-manager__toolbar-actions">
+                <button type="button" id="pj-guides-backup-toggle-btn" class="pj-guides-btn pj-guides-btn--subtle">Abrir backup remoto</button>
+              </div>
+            </div>
+            <div class="pj-guides-manager__toolbar-grid">
+              <input id="pj-guides-search" class="pj-guides-input" type="text" placeholder="Buscar processo, guia, tipo ou situação">
+              <select id="pj-guides-filter" class="pj-guides-select">
+                <option value="all">Todas</option>
+                <option value="overdue">Vencidas</option>
+                <option value="due_soon">Hoje e em breve</option>
+                <option value="due_week">Semana</option>
+                <option value="open">Em aberto</option>
+                <option value="ignored">Ignoradas</option>
+                <option value="paid">Pagas</option>
+              </select>
+              <button type="button" id="pj-guides-clear-filters" class="pj-guides-btn pj-guides-btn--subtle">Limpar filtros</button>
+            </div>
           </div>
         </section>
         <section class="pj-guides-manager__section">
-          <div class="pj-guides-manager__section-title">Backup remoto</div>
-          <div class="pj-guides-manager__backup">
+          <div class="pj-guides-manager__list-shell">
+            <div class="pj-guides-manager__list-head">
+              <div class="pj-guides-manager__toolbar-title-wrap">
+                <div class="pj-guides-manager__list-title">Guias monitoradas</div>
+                <div id="pj-guides-manager-list-meta" class="pj-guides-manager__list-meta"></div>
+              </div>
+            </div>
+            <div id="pj-guides-manager-content"></div>
+          </div>
+        </section>
+        <section class="pj-guides-manager__section">
+          <div id="pj-guides-manager-backup" class="pj-guides-manager__backup" hidden>
+            <div class="pj-guides-manager__backup-title">Backup remoto</div>
             <div class="pj-guides-manager__backup-desc">Use um único Gist no GitHub e um arquivo separado para este script.</div>
             <div class="pj-guides-manager__backup-grid">
               <div class="pj-guides-manager__backup-field">
@@ -1838,10 +2126,6 @@
             <div id="pj-guides-backup-last" class="pj-guides-manager__backup-last">${formatLastBackupLabel(backupSettings.lastBackupAt)}</div>
           </div>
         </section>
-        <section class="pj-guides-manager__section">
-          <div class="pj-guides-manager__section-title">Guias monitoradas</div>
-          <div id="pj-guides-manager-content"></div>
-        </section>
       </div>
     `;
 
@@ -1853,7 +2137,13 @@
 
     const searchInput = panel.querySelector('#pj-guides-search');
     const filterSelect = panel.querySelector('#pj-guides-filter');
+    const clearFiltersBtn = panel.querySelector('#pj-guides-clear-filters');
     const content = panel.querySelector('#pj-guides-manager-content');
+    const summaryHost = panel.querySelector('#pj-guides-manager-summary');
+    const toolbarMeta = panel.querySelector('#pj-guides-manager-toolbar-meta');
+    const listMeta = panel.querySelector('#pj-guides-manager-list-meta');
+    const backupPanel = panel.querySelector('#pj-guides-manager-backup');
+    const backupToggleBtn = panel.querySelector('#pj-guides-backup-toggle-btn');
     const backupEnabled = panel.querySelector('#pj-guides-backup-enabled');
     const backupAuto = panel.querySelector('#pj-guides-backup-auto');
     const backupGist = panel.querySelector('#pj-guides-backup-gist');
@@ -1876,6 +2166,11 @@
       backupStatus,
       backupLast
     ].every(Boolean);
+
+    function updateBackupToggleLabel() {
+      if (!backupToggleBtn || !backupPanel) return;
+      backupToggleBtn.textContent = backupPanel.hidden ? 'Abrir backup remoto' : 'Ocultar backup remoto';
+    }
 
     if (hasBackupUi) {
       backupEnabled.checked = backupSettings.enabled;
@@ -1965,6 +2260,7 @@
     function render() {
       const db = loadDb();
       const rows = flattenGuides(db);
+      const stats = summarizeManagerRows(db, rows);
       const term = String(searchInput.value || '').trim().toLowerCase();
       const filter = filterSelect.value;
       const filtered = rows.filter(row => {
@@ -1987,6 +2283,63 @@
         if (filter === 'paid') return ['paid', 'gratuidade', 'paid_manual', 'parcelamento_pago', 'parcelamento_realizado'].includes(row.status);
         return true;
       });
+      const filteredProcessCount = new Set(filtered.map(row => row.processRecord.key)).size;
+      const activeFilterLabel = filterSelect.options[filterSelect.selectedIndex] ? filterSelect.options[filterSelect.selectedIndex].text : 'Todas';
+      const summaryBadges = [];
+
+      if (stats.critical > 0) {
+        summaryBadges.push(`<span class="pj-guides-manager__summary-badge pj-guides-manager__summary-badge--danger">${stats.critical} crítica(s)</span>`);
+      } else {
+        summaryBadges.push('<span class="pj-guides-manager__summary-badge">Sem risco imediato</span>');
+      }
+      if (stats.staleProcesses > 0) {
+        summaryBadges.push(`<span class="pj-guides-manager__summary-badge pj-guides-manager__summary-badge--warn">${stats.staleProcesses} processo(s) com sync antiga</span>`);
+      }
+      if (stats.ignored > 0) {
+        summaryBadges.push(`<span class="pj-guides-manager__summary-badge">${stats.ignored} ignorada(s)</span>`);
+      }
+
+      summaryHost.innerHTML = `
+        <div class="pj-guides-manager__summary-head">
+          <div class="pj-guides-manager__summary-title-wrap">
+            <div class="pj-guides-manager__summary-title">Resumo rápido</div>
+            <div class="pj-guides-manager__summary-subtitle">O painel agora destaca primeiro o volume ativo, os riscos imediatos e o que ficou sem sincronização recente.</div>
+          </div>
+          <div class="pj-guides-manager__summary-badges">${summaryBadges.join('')}</div>
+        </div>
+        <div class="pj-guides-manager__stats">
+          <div class="pj-guides-manager__stat">
+            <span class="pj-guides-manager__stat-label">Processos</span>
+            <span class="pj-guides-manager__stat-value">${stats.processCount}</span>
+            <span class="pj-guides-manager__stat-note">${stats.totalGuides} guia(s) monitorada(s)</span>
+          </div>
+          <div class="pj-guides-manager__stat">
+            <span class="pj-guides-manager__stat-label">Em aberto</span>
+            <span class="pj-guides-manager__stat-value">${stats.open}</span>
+            <span class="pj-guides-manager__stat-note">Pendências visíveis para trabalho</span>
+          </div>
+          <div class="pj-guides-manager__stat pj-guides-manager__stat--danger">
+            <span class="pj-guides-manager__stat-label">Críticas</span>
+            <span class="pj-guides-manager__stat-value">${stats.critical}</span>
+            <span class="pj-guides-manager__stat-note">Vencidas, hoje ou em breve</span>
+          </div>
+          <div class="pj-guides-manager__stat pj-guides-manager__stat--ok">
+            <span class="pj-guides-manager__stat-label">Avisadas</span>
+            <span class="pj-guides-manager__stat-value">${stats.notified}</span>
+            <span class="pj-guides-manager__stat-note">${stats.paid} guia(s) já baixadas</span>
+          </div>
+          <div class="pj-guides-manager__stat pj-guides-manager__stat--warn">
+            <span class="pj-guides-manager__stat-label">Sync pendente</span>
+            <span class="pj-guides-manager__stat-value">${stats.staleProcesses}</span>
+            <span class="pj-guides-manager__stat-note">Processos sem atualização recente</span>
+          </div>
+        </div>
+      `;
+
+      toolbarMeta.textContent = `${filtered.length} de ${rows.length} guia(s) visíveis com o filtro “${activeFilterLabel}”.`;
+      listMeta.textContent = filtered.length
+        ? `${filteredProcessCount} processo(s) aparecem nesta visão. A listagem prioriza sincronizações mais recentes.`
+        : 'Nenhuma guia atende aos filtros atuais.';
 
       if (!filtered.length) {
         content.innerHTML = '<div class="pj-guides-manager__empty">Nenhuma guia encontrada com os filtros atuais.</div>';
@@ -1994,54 +2347,56 @@
       }
 
       content.innerHTML = `
-        <table class="pj-guides-manager__table">
-          <thead>
-            <tr>
-              <th class="pj-guides-col-process">Processo</th>
-              <th class="pj-guides-col-guide">Guia</th>
-              <th class="pj-guides-col-type">Tipo</th>
-              <th class="pj-guides-col-due">Vencimento</th>
-              <th class="pj-guides-col-status">Status</th>
-              <th class="pj-guides-col-sync">Última sync</th>
-              <th class="pj-guides-col-actions">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filtered.map(row => {
-              const proc = row.processRecord;
-              const guide = row.guide;
-              const identifier = guide.guideId || guide.number;
-              return `
-                <tr>
-                  <td>
-                    <span class="pj-guides-process-main" title="${htmlEscape(proc.cnj || proc.shortNumber || proc.processId)}">${htmlEscape(proc.shortNumber || proc.cnj || proc.processId)}</span>
-                  </td>
-                  <td>
-                    <span class="pj-guides-guide-main">${htmlEscape(guide.number)}</span>
-                    ${getCompactInstallmentText(guide) ? `<span class="pj-guides-guide-sub">${htmlEscape(getCompactInstallmentText(guide))}</span>` : ''}
-                  </td>
-                  <td><span class="pj-guides-guide-type">${htmlEscape(guide.type)}</span></td>
-                  <td>${formatDate(guide.dueDate)}</td>
-                  <td>
-                    <div class="pj-guides-status-cell">
-                      <span class="pj-guides-badge pj-guides-badge--${row.status}">${htmlEscape(getStatusLabel(row.status))}</span>
-                      ${(guide.manual && guide.manual.notified) ? '<span class="pj-guides-status-note">Cliente avisado</span>' : ''}
-                    </div>
-                  </td>
-                  <td><span class="pj-guides-sync">${formatDateTimeSingleLine(proc.lastGuidesSyncAt)}</span></td>
-                  <td>
-                    <div class="pj-guides-row-actions">
-                      <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="paid" data-process-key="${htmlEscape(proc.key)}" data-guide-key="${htmlEscape(identifier)}" title="${htmlEscape(guide.manual && guide.manual.paid ? 'Desfazer pago' : 'Marcar pago')}" aria-label="${htmlEscape(guide.manual && guide.manual.paid ? 'Desfazer pago' : 'Marcar pago')}"><i class="fa-solid ${guide.manual && guide.manual.paid ? 'fa-arrow-rotate-left' : 'fa-circle-check'}" aria-hidden="true"></i><span class="pj-guides-sr-only">${htmlEscape(guide.manual && guide.manual.paid ? 'Desfazer pago' : 'Marcar pago')}</span></button>
-                      <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="notify" data-process-key="${htmlEscape(proc.key)}" data-guide-key="${htmlEscape(identifier)}" title="${htmlEscape(guide.manual && guide.manual.notified ? 'Desfazer aviso' : 'Marcar aviso')}" aria-label="${htmlEscape(guide.manual && guide.manual.notified ? 'Desfazer aviso' : 'Marcar aviso')}"><i class="fa-solid ${guide.manual && guide.manual.notified ? 'fa-bell-slash' : 'fa-bell'}" aria-hidden="true"></i><span class="pj-guides-sr-only">${htmlEscape(guide.manual && guide.manual.notified ? 'Desfazer aviso' : 'Marcar aviso')}</span></button>
-                      <button type="button" class="pj-guides-btn pj-guides-btn--warn pj-guides-btn--icon" data-action="ignore" data-process-key="${htmlEscape(proc.key)}" data-guide-key="${htmlEscape(identifier)}" title="${htmlEscape(guide.manual && guide.manual.ignored ? 'Reativar' : 'Ignorar')}" aria-label="${htmlEscape(guide.manual && guide.manual.ignored ? 'Reativar' : 'Ignorar')}"><i class="fa-solid ${guide.manual && guide.manual.ignored ? 'fa-eye' : 'fa-ban'}" aria-hidden="true"></i><span class="pj-guides-sr-only">${htmlEscape(guide.manual && guide.manual.ignored ? 'Reativar' : 'Ignorar')}</span></button>
-                      <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="open" data-process-key="${htmlEscape(proc.key)}" title="Abrir processo" aria-label="Abrir processo"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="pj-guides-sr-only">Abrir processo</span></button>
-                    </div>
-                  </td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
+        <div class="pj-guides-manager__table-wrap">
+          <table class="pj-guides-manager__table">
+            <thead>
+              <tr>
+                <th class="pj-guides-col-process">Processo</th>
+                <th class="pj-guides-col-guide">Guia</th>
+                <th class="pj-guides-col-type">Tipo</th>
+                <th class="pj-guides-col-due">Vencimento</th>
+                <th class="pj-guides-col-status">Status</th>
+                <th class="pj-guides-col-sync">Última sync</th>
+                <th class="pj-guides-col-actions">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(row => {
+                const proc = row.processRecord;
+                const guide = row.guide;
+                const identifier = guide.guideId || guide.number;
+                return `
+                  <tr>
+                    <td>
+                      <span class="pj-guides-process-main" title="${htmlEscape(proc.cnj || proc.shortNumber || proc.processId)}">${htmlEscape(proc.shortNumber || proc.cnj || proc.processId)}</span>
+                    </td>
+                    <td>
+                      <span class="pj-guides-guide-main">${htmlEscape(guide.number)}</span>
+                      ${getCompactInstallmentText(guide) ? `<span class="pj-guides-guide-sub">${htmlEscape(getCompactInstallmentText(guide))}</span>` : ''}
+                    </td>
+                    <td><span class="pj-guides-guide-type">${htmlEscape(guide.type)}</span></td>
+                    <td>${formatDate(guide.dueDate)}</td>
+                    <td>
+                      <div class="pj-guides-status-cell">
+                        <span class="pj-guides-badge pj-guides-badge--${row.status}">${htmlEscape(getStatusLabel(row.status))}</span>
+                        ${(guide.manual && guide.manual.notified) ? '<span class="pj-guides-status-note">Cliente avisado</span>' : ''}
+                      </div>
+                    </td>
+                    <td><span class="pj-guides-sync">${formatDateTimeSingleLine(proc.lastGuidesSyncAt)}</span></td>
+                    <td>
+                      <div class="pj-guides-row-actions">
+                        <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="paid" data-process-key="${htmlEscape(proc.key)}" data-guide-key="${htmlEscape(identifier)}" title="${htmlEscape(guide.manual && guide.manual.paid ? 'Desfazer pago' : 'Marcar pago')}" aria-label="${htmlEscape(guide.manual && guide.manual.paid ? 'Desfazer pago' : 'Marcar pago')}"><i class="fa-solid ${guide.manual && guide.manual.paid ? 'fa-arrow-rotate-left' : 'fa-circle-check'}" aria-hidden="true"></i><span class="pj-guides-sr-only">${htmlEscape(guide.manual && guide.manual.paid ? 'Desfazer pago' : 'Marcar pago')}</span></button>
+                        <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="notify" data-process-key="${htmlEscape(proc.key)}" data-guide-key="${htmlEscape(identifier)}" title="${htmlEscape(guide.manual && guide.manual.notified ? 'Desfazer aviso' : 'Marcar aviso')}" aria-label="${htmlEscape(guide.manual && guide.manual.notified ? 'Desfazer aviso' : 'Marcar aviso')}"><i class="fa-solid ${guide.manual && guide.manual.notified ? 'fa-bell-slash' : 'fa-bell'}" aria-hidden="true"></i><span class="pj-guides-sr-only">${htmlEscape(guide.manual && guide.manual.notified ? 'Desfazer aviso' : 'Marcar aviso')}</span></button>
+                        <button type="button" class="pj-guides-btn pj-guides-btn--warn pj-guides-btn--icon" data-action="ignore" data-process-key="${htmlEscape(proc.key)}" data-guide-key="${htmlEscape(identifier)}" title="${htmlEscape(guide.manual && guide.manual.ignored ? 'Reativar' : 'Ignorar')}" aria-label="${htmlEscape(guide.manual && guide.manual.ignored ? 'Reativar' : 'Ignorar')}"><i class="fa-solid ${guide.manual && guide.manual.ignored ? 'fa-eye' : 'fa-ban'}" aria-hidden="true"></i><span class="pj-guides-sr-only">${htmlEscape(guide.manual && guide.manual.ignored ? 'Reativar' : 'Ignorar')}</span></button>
+                        <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="open" data-process-key="${htmlEscape(proc.key)}" title="Abrir processo" aria-label="Abrir processo"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="pj-guides-sr-only">Abrir processo</span></button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
       `;
 
       content.querySelectorAll('[data-action="open"]').forEach(btn => {
@@ -2077,6 +2432,23 @@
           updateGuideManual(processKey, guideKey, { ignored: !(current && current.guide.manual && current.guide.manual.ignored) });
           render();
         });
+      });
+    }
+
+    if (backupToggleBtn && backupPanel) {
+      backupToggleBtn.addEventListener('click', () => {
+        backupPanel.hidden = !backupPanel.hidden;
+        updateBackupToggleLabel();
+      });
+      updateBackupToggleLabel();
+    }
+
+    if (clearFiltersBtn) {
+      clearFiltersBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        filterSelect.value = 'all';
+        render();
+        searchInput.focus();
       });
     }
 
