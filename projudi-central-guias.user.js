@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      2.7
+// @version      2.8
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -821,12 +821,12 @@
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       }
       .pj-guides-inline {
-        margin: 12px 0 14px;
-        padding: 14px 16px;
+        margin: 8px 0 10px;
+        padding: 10px 12px;
         border: 1px solid #d8e3ef;
-        border-radius: 12px;
-        background: linear-gradient(180deg, #ffffff 0%, #f6f9fc 100%);
-        box-shadow: 0 12px 28px rgba(31, 52, 74, .08);
+        border-radius: 0;
+        background: #ffffff;
+        box-shadow: none;
       }
       .pj-guides-inline__header,
       .pj-guides-home__header,
@@ -835,42 +835,42 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
       }
       .pj-guides-inline__title,
       .pj-guides-home__title,
       .pj-guides-manager__title {
-        font-size: 18px;
+        font-size: 15px;
         font-weight: 700;
         color: #17365d;
       }
       .pj-guides-inline__meta,
       .pj-guides-home__meta {
         color: #5e7390;
-        font-size: 12px;
+        font-size: 11px;
       }
       .pj-guides-stats {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
-        gap: 10px;
-        margin-bottom: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+        gap: 8px;
+        margin-bottom: 8px;
       }
       .pj-guides-stat {
         background: #eef4fa;
         border: 1px solid #d8e4ef;
-        border-radius: 10px;
-        padding: 10px 12px;
+        border-radius: 0;
+        padding: 6px 8px;
       }
       .pj-guides-stat__label {
         display: block;
         color: #60758f;
-        font-size: 11px;
+        font-size: 10px;
         text-transform: uppercase;
         letter-spacing: .04em;
-        margin-bottom: 5px;
+        margin-bottom: 3px;
       }
       .pj-guides-stat__value {
-        font-size: 20px;
+        font-size: 14px;
         font-weight: 700;
         color: #17365d;
       }
@@ -879,8 +879,8 @@
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        margin-top: 8px;
-        justify-content: flex-end;
+        margin-top: 6px;
+        justify-content: flex-start;
       }
       .pj-guides-btn {
         display: inline-flex;
@@ -940,7 +940,7 @@
         border-radius: 0;
         background: transparent;
         color: #4d6d94;
-        font-size: 34px;
+        font-size: 28px;
         line-height: 1;
       }
       .pj-guides-btn--tool > i {
@@ -954,7 +954,7 @@
       }
       .pj-guides-home__actions .pj-guides-btn--tool,
       .pj-guides-inline__actions .pj-guides-btn--tool {
-        font-size: 34px;
+        font-size: 28px;
       }
       .pj-guides-sr-only {
         position: absolute;
@@ -972,12 +972,13 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 10px 12px;
-        border-radius: 10px;
-        margin-bottom: 12px;
+        padding: 7px 10px;
+        border-radius: 0;
+        margin-bottom: 8px;
         border: 1px solid #ead8aa;
         background: #fff7dd;
         color: #6a5517;
+        font-size: 11px;
       }
       .pj-guides-banner--danger {
         border-color: #efc2c2;
