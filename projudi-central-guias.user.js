@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      3.0
+// @version      3.1
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
 // @license      CC BY-NC 4.0
-// @updateURL    https://gist.githubusercontent.com/lourencosv/b62f6a7595e1c6a4f6ce0441bbdc3a46/raw/projudi-central-guias.user.js
-// @downloadURL  https://gist.githubusercontent.com/lourencosv/b62f6a7595e1c6a4f6ce0441bbdc3a46/raw/projudi-central-guias.user.js
+// @updateURL    https://raw.githubusercontent.com/thelawhub/centraldeguias/refs/heads/main/projudi-central-guias.user.js
+// @downloadURL  https://raw.githubusercontent.com/thelawhub/centraldeguias/refs/heads/main/projudi-central-guias.user.js
 // @match        *://projudi.tjgo.jus.br/*
 // @run-at       document-end
 // @grant        GM_getValue
@@ -1633,13 +1633,14 @@
   }
 
   function registerMenu() {
-    if (!isTopWindow()) return;
     if (typeof GM_registerMenuCommand !== 'function') return;
-    if (state.menuId && typeof GM_unregisterMenuCommand === 'function') {
-      try { GM_unregisterMenuCommand(state.menuId); } catch (_) {}
-    }
     try {
-      state.menuId = GM_registerMenuCommand(MENU_LABEL, openManager);
+      const previousId = state.menuId;
+      const nextId = GM_registerMenuCommand(MENU_LABEL, openManager);
+      if (nextId != null) state.menuId = nextId;
+      if (nextId != null && previousId && previousId !== state.menuId && typeof GM_unregisterMenuCommand === 'function') {
+        try { GM_unregisterMenuCommand(previousId); } catch (_) {}
+      }
     } catch (_) {}
   }
 
@@ -2525,6 +2526,11 @@
     evaluate();
     scheduleEvaluate(700);
     if (isTopWindow()) window.addEventListener('message', onMessage);
+    window.addEventListener('pageshow', registerMenu, true);
+    window.addEventListener('focus', registerMenu, true);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) registerMenu();
+    });
     window[INSTANCE_KEY] = { destroy, openManager };
   }
 
