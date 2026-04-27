@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      3.1
+// @version      3.2
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -51,6 +51,7 @@
   const BACKUP_KEY = 'projudi_guides_central::backup';
   const MENU_LABEL = 'Gerenciar Central de Guias';
   const BACKUP_SCHEMA = 'projudi-central-guias-backup-v1';
+  const FA_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css';
   const DEFAULT_BACKUP_SETTINGS = {
     enabled: false,
     gistId: '',
@@ -122,6 +123,15 @@
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return 'Último backup: ainda não enviado.';
     return `Último backup: ${date.toLocaleString('pt-BR')}.`;
+  }
+
+  function ensureFontAwesome() {
+    if (!document.head || document.querySelector('link[data-pj-guides-fa="1"]')) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = FA_CDN;
+    link.dataset.pjGuidesFa = '1';
+    document.head.appendChild(link);
   }
 
   function loadBackupSettings() {
@@ -810,6 +820,7 @@
 
   function ensureStyles() {
     if (state.styleMounted || !document.head) return;
+    ensureFontAwesome();
     const style = document.createElement('style');
     style.id = 'pj-guides-style';
     style.textContent = `
@@ -1291,17 +1302,52 @@
         border-radius: 12px;
         background: #fff;
       }
+      .pj-guides-manager__backup-popover {
+        position: fixed;
+        inset: 0;
+        z-index: ${UI_Z + 20};
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        background: rgba(15, 23, 42, .34);
+      }
+      .pj-guides-manager__backup-popover[data-open="true"] {
+        display: flex;
+      }
       .pj-guides-manager__backup {
+        width: min(720px, calc(100vw - 36px));
+        max-height: min(84vh, 760px);
         padding: 14px 16px;
         border: 1px solid #dbe3ef;
         border-radius: 12px;
         background: #ffffff;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+        box-shadow: 0 24px 70px rgba(2, 6, 23, .30);
         min-width: 0;
-        overflow: hidden;
+        overflow: auto;
       }
       .pj-guides-manager__backup[hidden] {
         display: none;
+      }
+      .pj-guides-manager__backup-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .pj-guides-manager__backup-close {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        padding: 0;
+        border: 1px solid #cbd5e1;
+        border-radius: 999px;
+        background: #f8fbff;
+        color: #173a61;
+        cursor: pointer;
+        font-size: 17px;
+        line-height: 1;
       }
       .pj-guides-manager__backup-title {
         margin: 0 0 6px;
@@ -1318,7 +1364,7 @@
       }
       .pj-guides-manager__backup-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
         min-width: 0;
       }
@@ -1342,7 +1388,7 @@
         box-sizing: border-box;
       }
       .pj-guides-manager__backup-field--full {
-        grid-column: auto;
+        grid-column: 1 / -1;
       }
       .pj-guides-manager__backup-row {
         display: flex;
@@ -2067,7 +2113,7 @@
                 <div id="pj-guides-manager-toolbar-meta" class="pj-guides-manager__toolbar-meta"></div>
               </div>
               <div class="pj-guides-manager__toolbar-actions">
-                <button type="button" id="pj-guides-backup-toggle-btn" class="pj-guides-btn pj-guides-btn--subtle">Abrir backup remoto</button>
+                <button type="button" id="pj-guides-backup-toggle-btn" class="pj-guides-btn pj-guides-btn--subtle"><i class="fa-solid fa-cloud" aria-hidden="true"></i><span>Backup remoto</span></button>
               </div>
             </div>
             <div class="pj-guides-manager__toolbar-grid">
@@ -2096,10 +2142,15 @@
             <div id="pj-guides-manager-content"></div>
           </div>
         </section>
-        <section class="pj-guides-manager__section">
-          <div id="pj-guides-manager-backup" class="pj-guides-manager__backup" hidden>
-            <div class="pj-guides-manager__backup-title">Backup remoto</div>
-            <div class="pj-guides-manager__backup-desc">Use um único Gist no GitHub e um arquivo separado para este script.</div>
+        <div id="pj-guides-manager-backup-popover" class="pj-guides-manager__backup-popover">
+          <section id="pj-guides-manager-backup" class="pj-guides-manager__backup">
+            <div class="pj-guides-manager__backup-head">
+              <div>
+                <div class="pj-guides-manager__backup-title">Backup remoto</div>
+                <div class="pj-guides-manager__backup-desc">Use um único Gist no GitHub e um arquivo separado para este script.</div>
+              </div>
+              <button type="button" class="pj-guides-manager__backup-close" data-pj-guides-backup-close title="Fechar">&times;</button>
+            </div>
             <div class="pj-guides-manager__backup-grid">
               <div class="pj-guides-manager__backup-field">
                 <label for="pj-guides-backup-gist">Gist ID</label>
@@ -2119,14 +2170,15 @@
                 <label><input id="pj-guides-backup-enabled" type="checkbox"> Ativar backup por Gist no GitHub.</label>
                 <label><input id="pj-guides-backup-auto" type="checkbox"> Backup automático</label>
               </div>
-              <button type="button" id="pj-guides-backup-send" class="pj-guides-btn">Enviar backup</button>
-              <button type="button" id="pj-guides-backup-restore" class="pj-guides-btn">Restaurar backup</button>
-              <button type="button" id="pj-guides-backup-clear" class="pj-guides-btn pj-guides-btn--danger">Limpar backup</button>
+              <button type="button" id="pj-guides-backup-send" class="pj-guides-btn"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i><span>Enviar backup</span></button>
+              <button type="button" id="pj-guides-backup-restore" class="pj-guides-btn"><i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i><span>Restaurar backup</span></button>
+              <button type="button" id="pj-guides-backup-clear" class="pj-guides-btn pj-guides-btn--danger"><i class="fa-solid fa-eraser" aria-hidden="true"></i><span>Limpar backup</span></button>
+              <button type="button" class="pj-guides-btn" data-pj-guides-backup-close>Fechar</button>
               <span id="pj-guides-backup-status" class="pj-guides-manager__backup-status"></span>
             </div>
             <div id="pj-guides-backup-last" class="pj-guides-manager__backup-last">${formatLastBackupLabel(backupSettings.lastBackupAt)}</div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     `;
 
@@ -2143,6 +2195,7 @@
     const summaryHost = panel.querySelector('#pj-guides-manager-summary');
     const toolbarMeta = panel.querySelector('#pj-guides-manager-toolbar-meta');
     const listMeta = panel.querySelector('#pj-guides-manager-list-meta');
+    const backupPopover = panel.querySelector('#pj-guides-manager-backup-popover');
     const backupPanel = panel.querySelector('#pj-guides-manager-backup');
     const backupToggleBtn = panel.querySelector('#pj-guides-backup-toggle-btn');
     const backupEnabled = panel.querySelector('#pj-guides-backup-enabled');
@@ -2169,8 +2222,8 @@
     ].every(Boolean);
 
     function updateBackupToggleLabel() {
-      if (!backupToggleBtn || !backupPanel) return;
-      backupToggleBtn.textContent = backupPanel.hidden ? 'Abrir backup remoto' : 'Ocultar backup remoto';
+      if (!backupToggleBtn) return;
+      backupToggleBtn.innerHTML = '<i class="fa-solid fa-cloud" aria-hidden="true"></i><span>Backup remoto</span>';
     }
 
     if (hasBackupUi) {
@@ -2436,10 +2489,15 @@
       });
     }
 
-    if (backupToggleBtn && backupPanel) {
+    if (backupToggleBtn && backupPopover) {
       backupToggleBtn.addEventListener('click', () => {
-        backupPanel.hidden = !backupPanel.hidden;
+        backupPopover.dataset.open = 'true';
         updateBackupToggleLabel();
+      });
+      backupPopover.addEventListener('click', event => {
+        if (event.target === backupPopover || event.target.closest('[data-pj-guides-backup-close]')) {
+          backupPopover.dataset.open = 'false';
+        }
       });
       updateBackupToggleLabel();
     }
