@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      3.2
+// @version      3.3
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -1318,7 +1318,8 @@
       .pj-guides-manager__backup {
         width: min(720px, calc(100vw - 36px));
         max-height: min(84vh, 760px);
-        padding: 14px 16px;
+        padding: 16px;
+        box-sizing: border-box;
         border: 1px solid #dbe3ef;
         border-radius: 12px;
         background: #ffffff;
@@ -1390,12 +1391,12 @@
       .pj-guides-manager__backup-field--full {
         grid-column: 1 / -1;
       }
-      .pj-guides-manager__backup-row {
+      .pj-guides-manager__backup-toggles {
         display: flex;
         flex-wrap: wrap;
         align-items: flex-start;
         gap: 10px;
-        margin-top: 10px;
+        margin-top: 12px;
         min-width: 0;
       }
       .pj-guides-manager__backup-toggle {
@@ -1410,14 +1411,35 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        font-weight: 500;
+          font-weight: 500;
         padding: 8px 10px;
         border: 1px solid #dbe3ef;
         border-radius: 999px;
         background: #f8fbff;
       }
+      .pj-guides-manager__backup-actions {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .pj-guides-manager__backup-actions .pj-guides-btn {
+        min-height: 40px;
+        justify-content: center;
+      }
+      .pj-guides-manager__backup-primary {
+        border-color: #1f69d5;
+        background: #1f69d5;
+        color: #fff;
+      }
+      .pj-guides-manager__backup-success {
+        border-color: #16833a;
+        background: #18883f;
+        color: #fff;
+      }
       .pj-guides-manager__backup-status {
-        flex: 1 1 100%;
+        display: block;
+        margin-top: 10px;
         font-size: 12px;
         color: #47627f;
         min-width: 0;
@@ -1426,9 +1448,6 @@
         margin-top: 8px;
         color: #94a3b8;
         font-size: 11px;
-      }
-      .pj-guides-manager__backup-row .pj-guides-btn {
-        white-space: nowrap;
       }
       .pj-guides-manager__backup-field .pj-guides-input {
         min-width: 0;
@@ -1585,7 +1604,9 @@
           padding: 12px;
         }
         .pj-guides-manager__stats,
-        .pj-guides-manager__toolbar-grid {
+        .pj-guides-manager__toolbar-grid,
+        .pj-guides-manager__backup-grid,
+        .pj-guides-manager__backup-actions {
           grid-template-columns: 1fr;
         }
         .pj-guides-manager__summary-head,
@@ -2146,7 +2167,7 @@
           <section id="pj-guides-manager-backup" class="pj-guides-manager__backup">
             <div class="pj-guides-manager__backup-head">
               <div>
-                <div class="pj-guides-manager__backup-title">Backup remoto</div>
+                <div class="pj-guides-manager__backup-title">BACKUP REMOTO</div>
                 <div class="pj-guides-manager__backup-desc">Use um único Gist no GitHub e um arquivo separado para este script.</div>
               </div>
               <button type="button" class="pj-guides-manager__backup-close" data-pj-guides-backup-close title="Fechar">&times;</button>
@@ -2165,17 +2186,19 @@
                 <input id="pj-guides-backup-token" class="pj-guides-input" type="password" placeholder="ghp_...">
               </div>
             </div>
-            <div class="pj-guides-manager__backup-row">
+            <div class="pj-guides-manager__backup-toggles">
               <div class="pj-guides-manager__backup-toggle">
-                <label><input id="pj-guides-backup-enabled" type="checkbox"> Ativar backup por Gist no GitHub.</label>
+                <label><input id="pj-guides-backup-enabled" type="checkbox"> Ativar backup por Gist no GitHub</label>
                 <label><input id="pj-guides-backup-auto" type="checkbox"> Backup automático</label>
               </div>
-              <button type="button" id="pj-guides-backup-send" class="pj-guides-btn"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i><span>Enviar backup</span></button>
-              <button type="button" id="pj-guides-backup-restore" class="pj-guides-btn"><i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i><span>Restaurar backup</span></button>
+            </div>
+            <div class="pj-guides-manager__backup-actions">
+              <button type="button" id="pj-guides-backup-send" class="pj-guides-btn pj-guides-manager__backup-primary"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i><span>Enviar backup</span></button>
+              <button type="button" id="pj-guides-backup-restore" class="pj-guides-btn pj-guides-manager__backup-success"><i class="fa-solid fa-cloud-arrow-down" aria-hidden="true"></i><span>Restaurar backup</span></button>
               <button type="button" id="pj-guides-backup-clear" class="pj-guides-btn pj-guides-btn--danger"><i class="fa-solid fa-eraser" aria-hidden="true"></i><span>Limpar backup</span></button>
               <button type="button" class="pj-guides-btn" data-pj-guides-backup-close>Fechar</button>
-              <span id="pj-guides-backup-status" class="pj-guides-manager__backup-status"></span>
             </div>
+            <span id="pj-guides-backup-status" class="pj-guides-manager__backup-status"></span>
             <div id="pj-guides-backup-last" class="pj-guides-manager__backup-last">${formatLastBackupLabel(backupSettings.lastBackupAt)}</div>
           </section>
         </div>
