@@ -18,6 +18,11 @@ Você precisa de um gerenciador de userscripts no navegador, como:
 - Tampermonkey
 - Violentmonkey
 - Greasemonkey
+- Userscripts (quoid/userscripts, Safari)
+
+## Atalho
+
+A central pode ser aberta pelo atalho **Alt+Shift+G**. Em gerenciadores que suportam menus, o item de menu também continua disponível.
 
 ## Instalação
 
