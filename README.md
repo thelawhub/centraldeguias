@@ -22,7 +22,7 @@ Você precisa de um gerenciador de userscripts no navegador, como:
 
 ## Atalho
 
-A central pode ser aberta pelo atalho **Alt+Shift+G**. Em gerenciadores que suportam menus, o item de menu também continua disponível.
+A central pode ser aberta pela sequência **Ctrl+;** e depois **G** (em até 1,5 segundo). Funciona em Windows, Linux e macOS (use a tecla Control no Mac). Em gerenciadores que suportam menus, o item de menu também continua disponível.
 
 ## Instalação
 
