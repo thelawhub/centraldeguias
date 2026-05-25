@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      3.5
+// @version      3.6
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -129,6 +129,20 @@
     autoBackupOnSave: false,
     lastBackupAt: '',
     lastBackupSignature: ''
+  };
+  const BACKUP_PANEL_SELECTORS = {
+    popover: '#pj-guides-manager-backup-popover',
+    toggleBtn: '#pj-guides-backup-toggle-btn',
+    enabled: '#pj-guides-backup-enabled',
+    auto: '#pj-guides-backup-auto',
+    gist: '#pj-guides-backup-gist',
+    token: '#pj-guides-backup-token',
+    file: '#pj-guides-backup-file',
+    send: '#pj-guides-backup-send',
+    restore: '#pj-guides-backup-restore',
+    clear: '#pj-guides-backup-clear',
+    status: '#pj-guides-backup-status',
+    last: '#pj-guides-backup-last'
   };
   const UI_Z = 2147483200;
   const ALERT_BUSINESS_DAYS = 7;
@@ -263,7 +277,7 @@
     return JSON.stringify(buildBackupDbSnapshot(db));
   }
 
-  function buildBackupPayload() {
+  function buildBackupPayload(db = loadDb()) {
     return {
       schema: BACKUP_SCHEMA,
       scriptId: SCRIPT_META.id,
@@ -271,7 +285,7 @@
       version: SCRIPT_META.version,
       exportedAt: nowIso(),
       host: location.host,
-      db: buildBackupDbSnapshot()
+      db: buildBackupDbSnapshot(db)
     };
   }
 
@@ -496,7 +510,7 @@
     state.backupTimer = setTimeout(async () => {
       state.backupTimer = null;
       try {
-        await pushBackupToGist(backupSettings, buildBackupPayload());
+        await pushBackupToGist(backupSettings, buildBackupPayload(db));
         saveBackupSettings({ ...backupSettings, lastBackupAt: nowIso(), lastBackupSignature: backupSignature });
       } catch (_) {}
     }, 800);
@@ -2167,6 +2181,149 @@
     saveDb(db);
   }
 
+  function queryElements(root, selectors) {
+    return Object.keys(selectors).reduce((acc, key) => {
+      acc[key] = root.querySelector(selectors[key]);
+      return acc;
+    }, {});
+  }
+
+  function hasBackupPanelElements(elements) {
+    return [
+      elements.enabled,
+      elements.auto,
+      elements.gist,
+      elements.token,
+      elements.file,
+      elements.send,
+      elements.restore,
+      elements.clear,
+      elements.status,
+      elements.last
+    ].every(Boolean);
+  }
+
+  function setBackupToggleLabel(button) {
+    if (!button) return;
+    button.innerHTML = '<i class="fa-solid fa-cloud" aria-hidden="true"></i><span>Backup remoto</span>';
+  }
+
+  function fillBackupForm(elements, settings) {
+    if (!hasBackupPanelElements(elements)) return;
+    elements.enabled.checked = settings.enabled;
+    elements.auto.checked = settings.autoBackupOnSave;
+    elements.gist.value = settings.gistId;
+    elements.token.value = settings.token;
+    elements.file.value = settings.fileName;
+    elements.last.textContent = formatLastBackupLabel(settings.lastBackupAt);
+  }
+
+  function readBackupForm(elements, currentSettings) {
+    if (!hasBackupPanelElements(elements)) return currentSettings;
+    return saveBackupSettings({
+      enabled: elements.enabled.checked,
+      autoBackupOnSave: elements.auto.checked,
+      gistId: elements.gist.value,
+      token: elements.token.value,
+      fileName: elements.file.value,
+      lastBackupAt: currentSettings.lastBackupAt,
+      lastBackupSignature: currentSettings.lastBackupSignature
+    });
+  }
+
+  function setBackupStatus(elements, message, isError) {
+    if (!hasBackupPanelElements(elements)) return;
+    elements.status.textContent = message || '';
+    elements.status.style.color = isError ? '#b42318' : '#47627f';
+  }
+
+  function createBackupPanelController(panel, options = {}) {
+    const elements = queryElements(panel, BACKUP_PANEL_SELECTORS);
+    let backupSettings = loadBackupSettings();
+    const hasUi = hasBackupPanelElements(elements);
+
+    if (hasUi) fillBackupForm(elements, backupSettings);
+
+    function refreshLastBackupLabel() {
+      if (!hasUi) return;
+      elements.last.textContent = formatLastBackupLabel(backupSettings.lastBackupAt);
+    }
+
+    function readSettings() {
+      backupSettings = readBackupForm(elements, backupSettings);
+      return backupSettings;
+    }
+
+    async function runBackupNow() {
+      let nextSettings = readSettings();
+      setBackupStatus(elements, 'Enviando backup...');
+      const backupSignature = buildBackupSignature();
+      await pushBackupToGist(nextSettings, buildBackupPayload(loadDb()));
+      nextSettings = saveBackupSettings({ ...nextSettings, lastBackupAt: nowIso(), lastBackupSignature: backupSignature });
+      backupSettings = nextSettings;
+      refreshLastBackupLabel();
+      setBackupStatus(elements, `Backup enviado em ${formatDateTimeSingleLine(new Date())}.`);
+    }
+
+    if (hasUi) {
+      elements.send.addEventListener('click', async () => {
+        try {
+          await runBackupNow();
+        } catch (error) {
+          setBackupStatus(elements, error && error.message ? error.message : 'Falha ao enviar backup.', true);
+        }
+      });
+
+      elements.restore.addEventListener('click', async () => {
+        try {
+          let nextSettings = readSettings();
+          setBackupStatus(elements, 'Restaurando backup...');
+          const payload = await readBackupFromGist(nextSettings);
+          applyBackupPayload(payload);
+          nextSettings = saveBackupSettings({ ...nextSettings, lastBackupSignature: buildBackupSignature(payload.db || loadDb()) });
+          backupSettings = nextSettings;
+          setBackupStatus(elements, `Backup restaurado em ${formatDateTimeSingleLine(new Date())}.`);
+          if (typeof options.onRestore === 'function') options.onRestore();
+        } catch (error) {
+          setBackupStatus(elements, error && error.message ? error.message : 'Falha ao restaurar backup.', true);
+        }
+      });
+
+      elements.clear.addEventListener('click', () => {
+        backupSettings = saveBackupSettings(DEFAULT_BACKUP_SETTINGS);
+        fillBackupForm(elements, backupSettings);
+        setBackupStatus(elements, 'Configuração de backup removida.');
+      });
+
+      [elements.enabled, elements.auto, elements.gist, elements.token, elements.file].forEach(el => {
+        const eventName = el.type === 'checkbox' ? 'change' : 'input';
+        el.addEventListener(eventName, () => {
+          readSettings();
+          if (elements.status.textContent) setBackupStatus(elements, '');
+        });
+      });
+    }
+
+    if (elements.toggleBtn && elements.popover) {
+      elements.toggleBtn.addEventListener('click', () => {
+        elements.popover.dataset.open = 'true';
+        setBackupToggleLabel(elements.toggleBtn);
+      });
+      elements.popover.addEventListener('click', event => {
+        if (event.target === elements.popover || event.target.closest('[data-pj-guides-backup-close]')) {
+          elements.popover.dataset.open = 'false';
+        }
+      });
+      setBackupToggleLabel(elements.toggleBtn);
+    }
+
+    return {
+      elements,
+      refreshLastBackupLabel,
+      readSettings
+    };
+  }
+
   function openManager(focusProcessKey = '') {
     if (!isTopWindow()) {
       getTopWindow().postMessage({ type: MSG_OPEN_MANAGER, focusProcessKey }, '*');
@@ -2175,7 +2332,6 @@
     ensureStyles();
     const existing = document.getElementById('pj-guides-manager-overlay');
     if (existing) existing.remove();
-    let backupSettings = loadBackupSettings();
 
     const overlay = document.createElement('div');
     overlay.id = 'pj-guides-manager-overlay';
@@ -2268,7 +2424,7 @@
               <button type="button" class="pj-guides-btn" data-pj-guides-backup-close>Fechar</button>
             </div>
             <span id="pj-guides-backup-status" class="pj-guides-manager__backup-status"></span>
-            <div id="pj-guides-backup-last" class="pj-guides-manager__backup-last">${formatLastBackupLabel(backupSettings.lastBackupAt)}</div>
+            <div id="pj-guides-backup-last" class="pj-guides-manager__backup-last"></div>
           </section>
         </div>
       </div>
@@ -2287,121 +2443,7 @@
     const summaryHost = panel.querySelector('#pj-guides-manager-summary');
     const toolbarMeta = panel.querySelector('#pj-guides-manager-toolbar-meta');
     const listMeta = panel.querySelector('#pj-guides-manager-list-meta');
-    const backupPopover = panel.querySelector('#pj-guides-manager-backup-popover');
-    const backupPanel = panel.querySelector('#pj-guides-manager-backup');
-    const backupToggleBtn = panel.querySelector('#pj-guides-backup-toggle-btn');
-    const backupEnabled = panel.querySelector('#pj-guides-backup-enabled');
-    const backupAuto = panel.querySelector('#pj-guides-backup-auto');
-    const backupGist = panel.querySelector('#pj-guides-backup-gist');
-    const backupToken = panel.querySelector('#pj-guides-backup-token');
-    const backupFile = panel.querySelector('#pj-guides-backup-file');
-    const backupSend = panel.querySelector('#pj-guides-backup-send');
-    const backupRestore = panel.querySelector('#pj-guides-backup-restore');
-    const backupClear = panel.querySelector('#pj-guides-backup-clear');
-    const backupStatus = panel.querySelector('#pj-guides-backup-status');
-    const backupLast = panel.querySelector('#pj-guides-backup-last');
-    const hasBackupUi = [
-      backupEnabled,
-      backupAuto,
-      backupGist,
-      backupToken,
-      backupFile,
-      backupSend,
-      backupRestore,
-      backupClear,
-      backupStatus,
-      backupLast
-    ].every(Boolean);
-
-    function updateBackupToggleLabel() {
-      if (!backupToggleBtn) return;
-      backupToggleBtn.innerHTML = '<i class="fa-solid fa-cloud" aria-hidden="true"></i><span>Backup remoto</span>';
-    }
-
-    if (hasBackupUi) {
-      backupEnabled.checked = backupSettings.enabled;
-      backupAuto.checked = backupSettings.autoBackupOnSave;
-      backupGist.value = backupSettings.gistId;
-      backupToken.value = backupSettings.token;
-      backupFile.value = backupSettings.fileName;
-    }
-
-    function setBackupStatus(message, isError) {
-      if (!hasBackupUi) return;
-      backupStatus.textContent = message || '';
-      backupStatus.style.color = isError ? '#b42318' : '#47627f';
-    }
-    function updateBackupLast() {
-      if (!hasBackupUi) return;
-      backupLast.textContent = formatLastBackupLabel(backupSettings.lastBackupAt);
-    }
-
-    function readBackupSettingsFromPanel() {
-      if (!hasBackupUi) return backupSettings;
-      backupSettings = saveBackupSettings({
-        enabled: backupEnabled.checked,
-        autoBackupOnSave: backupAuto.checked,
-        gistId: backupGist.value,
-        token: backupToken.value,
-        fileName: backupFile.value
-      });
-      return backupSettings;
-    }
-
-    async function runBackupNow() {
-      let nextSettings = readBackupSettingsFromPanel();
-      setBackupStatus('Enviando backup...');
-      const backupSignature = buildBackupSignature();
-      await pushBackupToGist(nextSettings, buildBackupPayload());
-      nextSettings = saveBackupSettings({ ...nextSettings, lastBackupAt: nowIso(), lastBackupSignature: backupSignature });
-      backupSettings = nextSettings;
-      updateBackupLast();
-      setBackupStatus(`Backup enviado em ${formatDateTimeSingleLine(new Date())}.`);
-    }
-    updateBackupLast();
-
-    if (hasBackupUi) {
-      backupSend.addEventListener('click', async () => {
-        try {
-          await runBackupNow();
-        } catch (error) {
-          setBackupStatus(error && error.message ? error.message : 'Falha ao enviar backup.', true);
-        }
-      });
-
-      backupRestore.addEventListener('click', async () => {
-        try {
-          let nextSettings = readBackupSettingsFromPanel();
-          setBackupStatus('Restaurando backup...');
-          const payload = await readBackupFromGist(nextSettings);
-          applyBackupPayload(payload);
-          nextSettings = saveBackupSettings({ ...nextSettings, lastBackupSignature: buildBackupSignature(payload.db || loadDb()) });
-          backupSettings = nextSettings;
-          setBackupStatus(`Backup restaurado em ${formatDateTimeSingleLine(new Date())}.`);
-          render();
-        } catch (error) {
-          setBackupStatus(error && error.message ? error.message : 'Falha ao restaurar backup.', true);
-        }
-      });
-      backupClear.addEventListener('click', () => {
-        const nextSettings = saveBackupSettings(DEFAULT_BACKUP_SETTINGS);
-        backupSettings = nextSettings;
-        backupEnabled.checked = nextSettings.enabled;
-        backupAuto.checked = nextSettings.autoBackupOnSave;
-        backupGist.value = nextSettings.gistId;
-        backupToken.value = nextSettings.token;
-        backupFile.value = nextSettings.fileName;
-        updateBackupLast();
-        setBackupStatus('Configuração de backup removida.');
-      });
-      [backupEnabled, backupAuto, backupGist, backupToken, backupFile].forEach(el => {
-        const eventName = el && el.type === 'checkbox' ? 'change' : 'input';
-        el.addEventListener(eventName, () => {
-          readBackupSettingsFromPanel();
-          if (backupStatus.textContent) setBackupStatus('');
-        });
-      });
-    }
+    createBackupPanelController(panel, { onRestore: () => render() });
 
     function render() {
       const db = loadDb();
@@ -2579,19 +2621,6 @@
           render();
         });
       });
-    }
-
-    if (backupToggleBtn && backupPopover) {
-      backupToggleBtn.addEventListener('click', () => {
-        backupPopover.dataset.open = 'true';
-        updateBackupToggleLabel();
-      });
-      backupPopover.addEventListener('click', event => {
-        if (event.target === backupPopover || event.target.closest('[data-pj-guides-backup-close]')) {
-          backupPopover.dataset.open = 'false';
-        }
-      });
-      updateBackupToggleLabel();
     }
 
     if (clearFiltersBtn) {
