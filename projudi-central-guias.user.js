@@ -1335,6 +1335,19 @@
         border-radius: 12px;
         background: #fff;
       }
+      .pj-guides-manager__stat[data-filter] {
+        cursor: pointer;
+        transition: transform .08s ease, box-shadow .08s ease, border-color .08s ease;
+      }
+      .pj-guides-manager__stat[data-filter]:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(23, 54, 93, .12);
+        border-color: #9fbbe0;
+      }
+      .pj-guides-manager__stat--active {
+        outline: 2px solid #2f6fbf;
+        outline-offset: -2px;
+      }
       .pj-guides-manager__stat-label {
         color: #60758f;
         font-size: 10px;
@@ -2372,6 +2385,7 @@
                 <option value="open">Em aberto</option>
                 <option value="ignored">Ignoradas</option>
                 <option value="paid">Pagas</option>
+                <option value="sync_stale">Sync pendente (processos)</option>
               </select>
               <button type="button" id="pj-guides-clear-filters" class="pj-guides-btn pj-guides-btn--subtle">Limpar filtros</button>
             </div>
@@ -2496,17 +2510,17 @@
           <div class="pj-guides-manager__summary-badges">${summaryBadges.join('')}</div>
         </div>
         <div class="pj-guides-manager__stats">
-          <div class="pj-guides-manager__stat">
+          <div class="pj-guides-manager__stat${filter === 'all' ? ' pj-guides-manager__stat--active' : ''}" data-filter="all" title="Mostrar todas as guias">
             <span class="pj-guides-manager__stat-label">Processos</span>
             <span class="pj-guides-manager__stat-value">${stats.processCount}</span>
             <span class="pj-guides-manager__stat-note">${stats.totalGuides} guia(s) monitorada(s)</span>
           </div>
-          <div class="pj-guides-manager__stat">
+          <div class="pj-guides-manager__stat${filter === 'open' ? ' pj-guides-manager__stat--active' : ''}" data-filter="open" title="Filtrar guias em aberto">
             <span class="pj-guides-manager__stat-label">Em aberto</span>
             <span class="pj-guides-manager__stat-value">${stats.open}</span>
             <span class="pj-guides-manager__stat-note">Pendências visíveis para trabalho</span>
           </div>
-          <div class="pj-guides-manager__stat pj-guides-manager__stat--danger">
+          <div class="pj-guides-manager__stat pj-guides-manager__stat--danger${filter === 'due_soon' ? ' pj-guides-manager__stat--active' : ''}" data-filter="due_soon" title="Filtrar guias críticas">
             <span class="pj-guides-manager__stat-label">Críticas</span>
             <span class="pj-guides-manager__stat-value">${stats.critical}</span>
             <span class="pj-guides-manager__stat-note">Vencidas, hoje ou em breve</span>
@@ -2516,10 +2530,10 @@
             <span class="pj-guides-manager__stat-value">${stats.notified}</span>
             <span class="pj-guides-manager__stat-note">${stats.paid} guia(s) já baixadas</span>
           </div>
-          <div class="pj-guides-manager__stat pj-guides-manager__stat--warn">
+          <div class="pj-guides-manager__stat pj-guides-manager__stat--warn${filter === 'sync_stale' ? ' pj-guides-manager__stat--active' : ''}" data-filter="sync_stale" title="Listar processos sem atualização recente">
             <span class="pj-guides-manager__stat-label">Sync pendente</span>
             <span class="pj-guides-manager__stat-value">${stats.staleProcesses}</span>
-            <span class="pj-guides-manager__stat-note">Processos sem atualização recente</span>
+            <span class="pj-guides-manager__stat-note">Clique para ver os processos</span>
           </div>
         </div>
       `;
@@ -2528,6 +2542,72 @@
       listMeta.textContent = filtered.length
         ? `${filteredProcessCount} processo(s) aparecem nesta visão. A listagem prioriza sincronizações mais recentes.`
         : 'Nenhuma guia atende aos filtros atuais.';
+
+      if (filter === 'sync_stale') {
+        const staleProcs = allProcessesSorted(db).filter(p => {
+          const s = computeProcessSummary(p);
+          return s.staleSync || s.neverSynced;
+        }).filter(p => {
+          if (!term) return true;
+          return [p.cnj, p.shortNumber, p.processId].join(' ').toLowerCase().includes(term);
+        }).sort((a, b) => {
+          const ta = new Date(a.lastGuidesSyncAt || a.lastProcessSeenAt || 0).getTime();
+          const tb = new Date(b.lastGuidesSyncAt || b.lastProcessSeenAt || 0).getTime();
+          return ta - tb;
+        });
+        toolbarMeta.textContent = `${staleProcs.length} processo(s) sem atualização recente.`;
+        listMeta.textContent = staleProcs.length
+          ? 'Processos ordenados do mais defasado para o mais recente. Clique em “Abrir” para sincronizar.'
+          : 'Nenhum processo está com sync pendente.';
+        if (!staleProcs.length) {
+          content.innerHTML = '<div class="pj-guides-manager__empty">Nenhum processo com sync pendente.</div>';
+          return;
+        }
+        content.innerHTML = `
+          <div class="pj-guides-manager__table-wrap">
+            <table class="pj-guides-manager__table">
+              <thead>
+                <tr>
+                  <th>Processo</th>
+                  <th>CNJ</th>
+                  <th>Última sync</th>
+                  <th>Guias</th>
+                  <th class="pj-guides-col-actions">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${staleProcs.map(proc => {
+                  const lastSync = proc.lastGuidesSyncAt
+                    ? formatDateTimeSingleLine(proc.lastGuidesSyncAt)
+                    : '<span style="color:#9a2626;font-weight:600;">Nunca</span>';
+                  const guidesCount = (proc.guides || []).length;
+                  return `
+                    <tr>
+                      <td><span class="pj-guides-process-main">${htmlEscape(proc.shortNumber || proc.processId || '—')}</span></td>
+                      <td><span class="pj-guides-guide-sub">${htmlEscape(proc.cnj || '—')}</span></td>
+                      <td><span class="pj-guides-sync">${lastSync}</span></td>
+                      <td>${guidesCount}</td>
+                      <td>
+                        <div class="pj-guides-row-actions">
+                          <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="open" data-process-key="${htmlEscape(proc.key)}" title="Abrir processo" aria-label="Abrir processo"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="pj-guides-sr-only">Abrir processo</span></button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+        content.querySelectorAll('[data-action="open"]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const dbForClick = loadDb();
+            const processRecord = dbForClick.processes[btn.getAttribute('data-process-key')];
+            navigateToUrl(getProcessOpenUrl(processRecord));
+          });
+        });
+        return;
+      }
 
       if (!filtered.length) {
         content.innerHTML = '<div class="pj-guides-manager__empty">Nenhuma guia encontrada com os filtros atuais.</div>';
@@ -2631,6 +2711,15 @@
         searchInput.focus();
       });
     }
+
+    summaryHost.addEventListener('click', e => {
+      const card = e.target.closest('.pj-guides-manager__stat[data-filter]');
+      if (!card) return;
+      const next = card.getAttribute('data-filter');
+      if (!next) return;
+      filterSelect.value = Array.from(filterSelect.options).some(o => o.value === next) ? next : 'all';
+      render();
+    });
 
     searchInput.addEventListener('input', render);
     filterSelect.addEventListener('change', render);
