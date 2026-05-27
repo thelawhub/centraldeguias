@@ -2599,13 +2599,6 @@
             </table>
           </div>
         `;
-        content.querySelectorAll('[data-action="open"]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const dbForClick = loadDb();
-            const processRecord = dbForClick.processes[btn.getAttribute('data-process-key')];
-            navigateToUrl(getProcessOpenUrl(processRecord));
-          });
-        });
         return;
       }
 
@@ -2667,41 +2660,33 @@
         </div>
       `;
 
-      content.querySelectorAll('[data-action="open"]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const dbForClick = loadDb();
-          const processRecord = dbForClick.processes[btn.getAttribute('data-process-key')];
-          navigateToUrl(getProcessOpenUrl(processRecord));
-        });
-      });
-      content.querySelectorAll('[data-action="paid"]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const processKey = btn.getAttribute('data-process-key');
-          const guideKey = btn.getAttribute('data-guide-key');
-          const current = flattenGuides(loadDb()).find(row => row.processRecord.key === processKey && (row.guide.guideId || row.guide.number) === guideKey);
-          updateGuideManual(processKey, guideKey, { paid: !(current && current.guide.manual && current.guide.manual.paid) });
-          render();
-        });
-      });
-      content.querySelectorAll('[data-action="notify"]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const processKey = btn.getAttribute('data-process-key');
-          const guideKey = btn.getAttribute('data-guide-key');
-          const current = flattenGuides(loadDb()).find(row => row.processRecord.key === processKey && (row.guide.guideId || row.guide.number) === guideKey);
-          updateGuideManual(processKey, guideKey, { notified: !(current && current.guide.manual && current.guide.manual.notified) });
-          render();
-        });
-      });
-      content.querySelectorAll('[data-action="ignore"]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const processKey = btn.getAttribute('data-process-key');
-          const guideKey = btn.getAttribute('data-guide-key');
-          const current = flattenGuides(loadDb()).find(row => row.processRecord.key === processKey && (row.guide.guideId || row.guide.number) === guideKey);
-          updateGuideManual(processKey, guideKey, { ignored: !(current && current.guide.manual && current.guide.manual.ignored) });
-          render();
-        });
-      });
     }
+
+    function findGuide(db, processKey, guideKey) {
+      const proc = db.processes && db.processes[processKey];
+      if (!proc || !proc.guides) return null;
+      return proc.guides.find(g => (g.guideId || g.number) === guideKey) || null;
+    }
+
+    content.addEventListener('click', e => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const action = btn.getAttribute('data-action');
+      const processKey = btn.getAttribute('data-process-key');
+      const guideKey = btn.getAttribute('data-guide-key');
+      if (action === 'open') {
+        const proc = loadDb().processes[processKey];
+        if (proc) navigateToUrl(getProcessOpenUrl(proc));
+        return;
+      }
+      const guide = findGuide(loadDb(), processKey, guideKey);
+      const manual = (guide && guide.manual) || {};
+      if (action === 'paid') updateGuideManual(processKey, guideKey, { paid: !manual.paid });
+      else if (action === 'notify') updateGuideManual(processKey, guideKey, { notified: !manual.notified });
+      else if (action === 'ignore') updateGuideManual(processKey, guideKey, { ignored: !manual.ignored });
+      else return;
+      render();
+    });
 
     if (clearFiltersBtn) {
       clearFiltersBtn.addEventListener('click', () => {
@@ -2721,7 +2706,11 @@
       render();
     });
 
-    searchInput.addEventListener('input', render);
+    let searchDebounce = null;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(render, 150);
+    });
     filterSelect.addEventListener('change', render);
 
     overlay.appendChild(panel);
