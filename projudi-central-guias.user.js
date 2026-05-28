@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      3.9
+// @version      3.10
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -149,6 +149,8 @@
   const STALE_SYNC_DAYS = 10;
   const WEEK_DAYS = 7;
   const HOME_TABLE_LIMIT = 8;
+  const MAX_TABLE_ROWS = 300;
+  const MAX_ALERTS_TRACKED = 200;
   const CNJ_REGEX = /\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b/;
   const SHORT_PROC_REGEX = /\b\d{7}-\d{2}\b/;
   const MSG_OPEN_MANAGER = 'pj-guides-open-manager';
@@ -1928,6 +1930,9 @@
       tone = 'warn';
     }
     if (!message) return;
+    if (state.alertsShown.size >= MAX_ALERTS_TRACKED) {
+      state.alertsShown.clear();
+    }
     state.alertsShown.add(signature);
     showToast(message, tone, { timeout: 6500 });
   }
@@ -2762,6 +2767,11 @@
         return;
       }
 
+      const visibleRows = filtered.slice(0, MAX_TABLE_ROWS);
+      if (filtered.length > MAX_TABLE_ROWS) {
+        listMeta.textContent = `Exibindo ${MAX_TABLE_ROWS} de ${filtered.length} guia(s) para preservar memória. Refine a busca ou use um filtro.`;
+      }
+
       content.innerHTML = `
         <div class="pj-guides-manager__table-wrap">
           <table class="pj-guides-manager__table">
@@ -2777,7 +2787,7 @@
               </tr>
             </thead>
             <tbody>
-              ${filtered.map(row => {
+              ${visibleRows.map(row => {
                 const proc = row.processRecord;
                 const guide = row.guide;
                 const identifier = guide.guideId || guide.number;
