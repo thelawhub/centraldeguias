@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      3.8
+// @version      3.9
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -474,6 +474,8 @@
         lastGuidesSyncSource: String(proc.lastGuidesSyncSource || '').trim(),
         archived: !!proc.archived,
         archivedAt: String(proc.archivedAt || '').trim(),
+        untracked: !!proc.untracked,
+        untrackedAt: String(proc.untrackedAt || '').trim(),
         guides: (Array.isArray(proc.guides) ? proc.guides : []).map((guide, index) => ({
           rowNumber: guide && guide.rowNumber != null ? guide.rowNumber : index + 1,
           guideId: String(guide && guide.guideId || '').trim(),
@@ -580,6 +582,8 @@
       lastGuidesSyncSource: existing.lastGuidesSyncSource || '',
       archived: !!existing.archived,
       archivedAt: existing.archivedAt || '',
+      untracked: !!existing.untracked,
+      untrackedAt: existing.untrackedAt || '',
       guides: Array.isArray(existing.guides) ? existing.guides.map(g => ({
         ...g,
         manual: normalizeManual(g.manual)
@@ -805,9 +809,11 @@
 
   function allProcessesSorted(db = loadDb(), options = {}) {
     const includeArchived = !!options.includeArchived;
+    const includeUntracked = !!options.includeUntracked;
     return Object.values(db.processes || {})
       .filter(proc => proc && (proc.cnj || proc.shortNumber || proc.processId))
       .filter(proc => includeArchived || !proc.archived)
+      .filter(proc => includeUntracked || !proc.untracked)
       .sort((a, b) => {
         const ta = new Date(a.lastGuidesSyncAt || a.lastProcessSeenAt || 0).getTime();
         const tb = new Date(b.lastGuidesSyncAt || b.lastProcessSeenAt || 0).getTime();
@@ -825,12 +831,31 @@
       });
   }
 
+  function untrackedProcessesSorted(db = loadDb()) {
+    return Object.values(db.processes || {})
+      .filter(proc => proc && proc.untracked && !proc.archived && (proc.cnj || proc.shortNumber || proc.processId))
+      .sort((a, b) => {
+        const ta = new Date(a.untrackedAt || 0).getTime();
+        const tb = new Date(b.untrackedAt || 0).getTime();
+        return tb - ta;
+      });
+  }
+
   function setProcessArchived(processKey, archived) {
     const db = loadDb();
     const processRecord = db.processes[processKey];
     if (!processRecord) return;
     processRecord.archived = !!archived;
     processRecord.archivedAt = archived ? nowIso() : '';
+    saveDb(db);
+  }
+
+  function setProcessUntracked(processKey, untracked) {
+    const db = loadDb();
+    const processRecord = db.processes[processKey];
+    if (!processRecord) return;
+    processRecord.untracked = !!untracked;
+    processRecord.untrackedAt = untracked ? nowIso() : '';
     saveDb(db);
   }
 
@@ -2411,6 +2436,7 @@
                 <option value="ignored">Ignoradas</option>
                 <option value="paid">Pagas</option>
                 <option value="sync_stale">Sync pendente (processos)</option>
+                <option value="untracked">Não acompanhados</option>
                 <option value="archived">Arquivados</option>
               </select>
               <button type="button" id="pj-guides-clear-filters" class="pj-guides-btn pj-guides-btn--subtle">Limpar filtros</button>
@@ -2616,6 +2642,58 @@
                       <td>
                         <div class="pj-guides-row-actions">
                           <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="open" data-process-key="${htmlEscape(proc.key)}" title="Abrir processo" aria-label="Abrir processo"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="pj-guides-sr-only">Abrir processo</span></button>
+                          <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="untrack" data-process-key="${htmlEscape(proc.key)}" title="Deixar de acompanhar" aria-label="Deixar de acompanhar"><i class="fa-solid fa-user-slash" aria-hidden="true"></i><span class="pj-guides-sr-only">Deixar de acompanhar</span></button>
+                          <button type="button" class="pj-guides-btn pj-guides-btn--warn pj-guides-btn--icon" data-action="archive" data-process-key="${htmlEscape(proc.key)}" title="Arquivar processo" aria-label="Arquivar processo"><i class="fa-solid fa-box-archive" aria-hidden="true"></i><span class="pj-guides-sr-only">Arquivar processo</span></button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+        return;
+      }
+
+      if (filter === 'untracked') {
+        const untrackedProcs = untrackedProcessesSorted(db).filter(p => {
+          if (!term) return true;
+          return [p.cnj, p.shortNumber, p.processId].join(' ').toLowerCase().includes(term);
+        });
+        toolbarMeta.textContent = `${untrackedProcs.length} processo(s) sem acompanhamento.`;
+        listMeta.textContent = untrackedProcs.length
+          ? 'Processos sem acompanhamento ficam fora do painel e das contagens. Use “Acompanhar” para voltar a monitorar.'
+          : 'Nenhum processo sem acompanhamento.';
+        if (!untrackedProcs.length) {
+          content.innerHTML = '<div class="pj-guides-manager__empty">Nenhum processo sem acompanhamento.</div>';
+          return;
+        }
+        content.innerHTML = `
+          <div class="pj-guides-manager__table-wrap">
+            <table class="pj-guides-manager__table">
+              <thead>
+                <tr>
+                  <th>Processo</th>
+                  <th>CNJ</th>
+                  <th>Sem acompanhar desde</th>
+                  <th>Guias</th>
+                  <th class="pj-guides-col-actions">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${untrackedProcs.map(proc => {
+                  const guidesCount = (proc.guides || []).length;
+                  return `
+                    <tr>
+                      <td><span class="pj-guides-process-main">${htmlEscape(proc.shortNumber || proc.processId || '—')}</span></td>
+                      <td><span class="pj-guides-guide-sub">${htmlEscape(proc.cnj || '—')}</span></td>
+                      <td><span class="pj-guides-sync">${proc.untrackedAt ? formatDateTimeSingleLine(proc.untrackedAt) : '—'}</span></td>
+                      <td>${guidesCount}</td>
+                      <td>
+                        <div class="pj-guides-row-actions">
+                          <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="open" data-process-key="${htmlEscape(proc.key)}" title="Abrir processo" aria-label="Abrir processo"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="pj-guides-sr-only">Abrir processo</span></button>
+                          <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="track" data-process-key="${htmlEscape(proc.key)}" title="Voltar a acompanhar" aria-label="Voltar a acompanhar"><i class="fa-solid fa-user-check" aria-hidden="true"></i><span class="pj-guides-sr-only">Voltar a acompanhar</span></button>
                           <button type="button" class="pj-guides-btn pj-guides-btn--warn pj-guides-btn--icon" data-action="archive" data-process-key="${htmlEscape(proc.key)}" title="Arquivar processo" aria-label="Arquivar processo"><i class="fa-solid fa-box-archive" aria-hidden="true"></i><span class="pj-guides-sr-only">Arquivar processo</span></button>
                         </div>
                       </td>
@@ -2758,6 +2836,11 @@
       }
       if (action === 'archive' || action === 'unarchive') {
         setProcessArchived(processKey, action === 'archive');
+        render();
+        return;
+      }
+      if (action === 'untrack' || action === 'track') {
+        setProcessUntracked(processKey, action === 'untrack');
         render();
         return;
       }
