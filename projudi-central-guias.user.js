@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      3.10
+// @version      3.11
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -547,13 +547,39 @@
     return Array.from(merged.values());
   }
 
+  function normalizeShortNumber(value) {
+    const s = String(value || '').trim();
+    const match = s.match(/^0*(\d+-\d+)$/);
+    return match ? match[1] : s;
+  }
+
+  function sameShortNumber(a, b) {
+    if (!a || !b) return false;
+    return normalizeShortNumber(a) === normalizeShortNumber(b);
+  }
+
+  function pickCanonicalShortNumber(a, b) {
+    if (a && b && sameShortNumber(a, b)) {
+      return a.length >= b.length ? a : b;
+    }
+    return a || b || '';
+  }
+
+  function processMatchesCandidate(proc, candidate) {
+    if (!candidate) return false;
+    return (
+      proc.processId === candidate ||
+      proc.cnj === candidate ||
+      proc.key === candidate ||
+      sameShortNumber(proc.shortNumber, candidate) ||
+      sameShortNumber(proc.key, candidate)
+    );
+  }
+
   function ensureProcessRecord(db, identity) {
     const candidates = [identity.processId, identity.cnj, identity.shortNumber].filter(Boolean);
     const matchedEntries = Object.entries(db.processes || {}).filter(([, proc]) => (
-      candidates.some(candidate => (
-        candidate &&
-        (proc.processId === candidate || proc.cnj === candidate || proc.shortNumber === candidate || proc.key === candidate)
-      ))
+      candidates.some(candidate => processMatchesCandidate(proc, candidate))
     ));
     const key = identity.processId
       || (matchedEntries.find(([, proc]) => proc.processId)?.[0])
@@ -573,7 +599,7 @@
       key,
       processId: identity.processId || existing.processId || '',
       cnj: identity.cnj || existing.cnj || '',
-      shortNumber: identity.shortNumber || existing.shortNumber || '',
+      shortNumber: pickCanonicalShortNumber(identity.shortNumber, existing.shortNumber),
       area: identity.area || existing.area || '',
       serventia: identity.serventia || existing.serventia || '',
       classe: identity.classe || existing.classe || '',
@@ -603,7 +629,7 @@
     return values.find(proc => (
       (matcher.processId && proc.processId === matcher.processId) ||
       (matcher.cnj && proc.cnj === matcher.cnj) ||
-      (matcher.shortNumber && proc.shortNumber === matcher.shortNumber)
+      (matcher.shortNumber && sameShortNumber(proc.shortNumber, matcher.shortNumber))
     )) || null;
   }
 
