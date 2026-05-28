@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Central de Guias
 // @namespace    projudi-central-guias.user.js
-// @version      3.7
+// @version      3.8
 // @icon         https://img.icons8.com/ios-filled/100/scales--v1.png
 // @description  Central local para sincronizar, acompanhar e alertar sobre guias de pagamento no Projudi.
 // @author       lourencosv (GPT)
@@ -472,6 +472,8 @@
         lastProcessSeenAt: String(proc.lastProcessSeenAt || '').trim(),
         lastGuidesSyncAt: String(proc.lastGuidesSyncAt || '').trim(),
         lastGuidesSyncSource: String(proc.lastGuidesSyncSource || '').trim(),
+        archived: !!proc.archived,
+        archivedAt: String(proc.archivedAt || '').trim(),
         guides: (Array.isArray(proc.guides) ? proc.guides : []).map((guide, index) => ({
           rowNumber: guide && guide.rowNumber != null ? guide.rowNumber : index + 1,
           guideId: String(guide && guide.guideId || '').trim(),
@@ -576,6 +578,8 @@
       lastProcessSeenAt: identity.lastProcessSeenAt || existing.lastProcessSeenAt || '',
       lastGuidesSyncAt: existing.lastGuidesSyncAt || '',
       lastGuidesSyncSource: existing.lastGuidesSyncSource || '',
+      archived: !!existing.archived,
+      archivedAt: existing.archivedAt || '',
       guides: Array.isArray(existing.guides) ? existing.guides.map(g => ({
         ...g,
         manual: normalizeManual(g.manual)
@@ -799,14 +803,35 @@
     return summary;
   }
 
-  function allProcessesSorted(db = loadDb()) {
+  function allProcessesSorted(db = loadDb(), options = {}) {
+    const includeArchived = !!options.includeArchived;
     return Object.values(db.processes || {})
       .filter(proc => proc && (proc.cnj || proc.shortNumber || proc.processId))
+      .filter(proc => includeArchived || !proc.archived)
       .sort((a, b) => {
         const ta = new Date(a.lastGuidesSyncAt || a.lastProcessSeenAt || 0).getTime();
         const tb = new Date(b.lastGuidesSyncAt || b.lastProcessSeenAt || 0).getTime();
         return tb - ta;
       });
+  }
+
+  function archivedProcessesSorted(db = loadDb()) {
+    return Object.values(db.processes || {})
+      .filter(proc => proc && proc.archived && (proc.cnj || proc.shortNumber || proc.processId))
+      .sort((a, b) => {
+        const ta = new Date(a.archivedAt || 0).getTime();
+        const tb = new Date(b.archivedAt || 0).getTime();
+        return tb - ta;
+      });
+  }
+
+  function setProcessArchived(processKey, archived) {
+    const db = loadDb();
+    const processRecord = db.processes[processKey];
+    if (!processRecord) return;
+    processRecord.archived = !!archived;
+    processRecord.archivedAt = archived ? nowIso() : '';
+    saveDb(db);
   }
 
   function allCriticalGuides(db = loadDb(), baseDate = startOfToday()) {
@@ -2386,6 +2411,7 @@
                 <option value="ignored">Ignoradas</option>
                 <option value="paid">Pagas</option>
                 <option value="sync_stale">Sync pendente (processos)</option>
+                <option value="archived">Arquivados</option>
               </select>
               <button type="button" id="pj-guides-clear-filters" class="pj-guides-btn pj-guides-btn--subtle">Limpar filtros</button>
             </div>
@@ -2590,6 +2616,57 @@
                       <td>
                         <div class="pj-guides-row-actions">
                           <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="open" data-process-key="${htmlEscape(proc.key)}" title="Abrir processo" aria-label="Abrir processo"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="pj-guides-sr-only">Abrir processo</span></button>
+                          <button type="button" class="pj-guides-btn pj-guides-btn--warn pj-guides-btn--icon" data-action="archive" data-process-key="${htmlEscape(proc.key)}" title="Arquivar processo" aria-label="Arquivar processo"><i class="fa-solid fa-box-archive" aria-hidden="true"></i><span class="pj-guides-sr-only">Arquivar processo</span></button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+        return;
+      }
+
+      if (filter === 'archived') {
+        const archivedProcs = archivedProcessesSorted(db).filter(p => {
+          if (!term) return true;
+          return [p.cnj, p.shortNumber, p.processId].join(' ').toLowerCase().includes(term);
+        });
+        toolbarMeta.textContent = `${archivedProcs.length} processo(s) arquivado(s).`;
+        listMeta.textContent = archivedProcs.length
+          ? 'Processos arquivados não aparecem nas demais visões nem nas contagens. Use “Reativar” para trazê-los de volta.'
+          : 'Nenhum processo arquivado.';
+        if (!archivedProcs.length) {
+          content.innerHTML = '<div class="pj-guides-manager__empty">Nenhum processo arquivado.</div>';
+          return;
+        }
+        content.innerHTML = `
+          <div class="pj-guides-manager__table-wrap">
+            <table class="pj-guides-manager__table">
+              <thead>
+                <tr>
+                  <th>Processo</th>
+                  <th>CNJ</th>
+                  <th>Arquivado em</th>
+                  <th>Guias</th>
+                  <th class="pj-guides-col-actions">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${archivedProcs.map(proc => {
+                  const guidesCount = (proc.guides || []).length;
+                  return `
+                    <tr>
+                      <td><span class="pj-guides-process-main">${htmlEscape(proc.shortNumber || proc.processId || '—')}</span></td>
+                      <td><span class="pj-guides-guide-sub">${htmlEscape(proc.cnj || '—')}</span></td>
+                      <td><span class="pj-guides-sync">${proc.archivedAt ? formatDateTimeSingleLine(proc.archivedAt) : '—'}</span></td>
+                      <td>${guidesCount}</td>
+                      <td>
+                        <div class="pj-guides-row-actions">
+                          <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="open" data-process-key="${htmlEscape(proc.key)}" title="Abrir processo" aria-label="Abrir processo"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="pj-guides-sr-only">Abrir processo</span></button>
+                          <button type="button" class="pj-guides-btn pj-guides-btn--icon" data-action="unarchive" data-process-key="${htmlEscape(proc.key)}" title="Reativar processo" aria-label="Reativar processo"><i class="fa-solid fa-box-open" aria-hidden="true"></i><span class="pj-guides-sr-only">Reativar processo</span></button>
                         </div>
                       </td>
                     </tr>
@@ -2677,6 +2754,11 @@
       if (action === 'open') {
         const proc = loadDb().processes[processKey];
         if (proc) navigateToUrl(getProcessOpenUrl(proc));
+        return;
+      }
+      if (action === 'archive' || action === 'unarchive') {
+        setProcessArchived(processKey, action === 'archive');
+        render();
         return;
       }
       const guide = findGuide(loadDb(), processKey, guideKey);
